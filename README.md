@@ -1,7 +1,7 @@
 
 # Banking Middleware API
 
-A Django-based middleware application for managing banking operations, KYC, and investment accounts integration.
+A Django-based middleware application for managing banking operations, KYC, and investment accounts integration, with OpenTelemetry monitoring.
 
 ## Features
 
@@ -33,11 +33,18 @@ A Django-based middleware application for managing banking operations, KYC, and 
 - Timeout and retry settings
 - Multi-provider support
 
+### 5. Monitoring & Observability
+- OpenTelemetry integration
+- Distributed tracing
+- Metrics collection with Prometheus
+- Centralized logging
+- Performance monitoring dashboard
+
 ## Technical Setup
 
 1. Install project dependencies:
 ```bash
-python manage.py collectstatic
+python manage.py collectstatic --noinput
 ```
 
 2. Run migrations:
@@ -48,8 +55,14 @@ python manage.py migrate
 
 3. Start the server:
 ```bash
-gunicorn --bind 0.0.0.0:5000 --workers 3 --timeout 120 banking_project.wsgi:application
+gunicorn --bind 0.0.0.0:5000 --workers 4 --threads 2 --worker-class=gthread --worker-connections=1000 --timeout 120 banking_project.wsgi:application
 ```
+
+## Monitoring
+
+- Metrics dashboard available at: `/metrics_dashboard.html`
+- Prometheus metrics endpoint: `http://0.0.0.0:9090/metrics`
+- Application logs: `logs/banking_middleware.log`
 
 ## API Documentation
 
@@ -80,6 +93,7 @@ The project uses:
 - JWT for authentication
 - PostgreSQL for database
 - Gunicorn for deployment
+- OpenTelemetry for monitoring
 
 ## Security
 
