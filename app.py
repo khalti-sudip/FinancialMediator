@@ -39,6 +39,16 @@ def create_app(config_name='default'):
     from config import config
     app.config.from_object(config[config_name])
     
+    # Set database URI directly from environment
+    db_url = os.environ.get('DATABASE_URL', 'sqlite:///banking_middleware.db')
+    
+    # If DATABASE_URL is postgres:// then replace with postgresql:// for SQLAlchemy 
+    if db_url and db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    app.logger.info(f"Using database: {db_url}")
+    
     # Set secret key from environment variable
     app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
     
