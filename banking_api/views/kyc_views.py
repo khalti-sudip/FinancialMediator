@@ -1,0 +1,44 @@
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from banking_api.models.kyc import KYCProfile, DematAccount, Portfolio
+from banking_api.serializers.kyc_serializer import (
+    KYCProfileSerializer, DematAccountSerializer, PortfolioSerializer
+)
+
+class KYCViewSet(viewsets.ModelViewSet):
+    queryset = KYCProfile.objects.all()
+    serializer_class = KYCProfileSerializer
+    
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        profile = self.get_object()
+        profile.is_verified = True
+        profile.save()
+        return Response({'status': 'verified'})
+
+class DematAccountViewSet(viewsets.ModelViewSet):
+    queryset = DematAccount.objects.all()
+    serializer_class = DematAccountSerializer
+
+    @action(detail=True, methods=['post'])
+    def renew(self, request, pk=None):
+        account = self.get_object()
+        # Add renewal logic here
+        return Response({'status': 'renewed'})
+
+class PortfolioViewSet(viewsets.ModelViewSet):
+    queryset = Portfolio.objects.all()
+    serializer_class = PortfolioSerializer
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        portfolios = self.get_queryset()
+        total_value = sum(
+            p.quantity * p.current_price for p in portfolios
+        )
+        return Response({
+            'total_value': total_value,
+            'positions': PortfolioSerializer(portfolios, many=True).data
+        })

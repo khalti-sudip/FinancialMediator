@@ -8,6 +8,7 @@ deploymentTarget = "autoscale"
 run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 
 [workflows]
+runButton = "Banking API"
 
 [[workflows.workflow]]
 name = "Project"
@@ -32,6 +33,19 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Banking API"
+author = 40720939
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python manage.py migrate"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:5000 --workers 3 --timeout 120 banking_project.wsgi:application"
 
 [[ports]]
 localPort = 5000

@@ -24,8 +24,9 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from banking_api.views import (
     UserViewSet, TransactionViewSet, ApiKeyViewSet, 
     SystemConfigViewSet, AuditLogViewSet,
-    LoginView, RegisterView, VerifyTokenView
-)
+    LoginView, RegisterView, VerifyTokenView,
+    KYCViewSet, DematAccountViewSet, PortfolioViewSet
+) # Added imports for new ViewSets
 from banking_api.views.health_views import HealthCheckView
 from banking_api.views.index_views import IndexView
 
@@ -36,25 +37,28 @@ router.register(r'transactions', TransactionViewSet)
 router.register(r'api-keys', ApiKeyViewSet)
 router.register(r'system-configs', SystemConfigViewSet)
 router.register(r'audit-logs', AuditLogViewSet)
+router.register(r'kyc', KYCViewSet) # Added KYC endpoint
+router.register(r'demat', DematAccountViewSet) # Added Demat endpoint
+router.register(r'portfolio', PortfolioViewSet) # Added Portfolio endpoint
 
 # URLs
 urlpatterns = [
     path('', IndexView.as_view(), name='index'),
     path('admin/', admin.site.urls),
-    
+
     # API Endpoints
     path('api/', include(router.urls)),
-    
+
     # Authentication
     path('api/auth/login/', LoginView.as_view(), name='login'),
     path('api/auth/register/', RegisterView.as_view(), name='register'),
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/verify/', VerifyTokenView.as_view(), name='token_verify'),
-    
+
     # Health Check
     path('api/health/', HealthCheckView.as_view(), name='health_check'),
     path('health/', HealthCheckView.as_view(), name='health_check_alt'),
-    
+
     # API Documentation and Browser
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]
