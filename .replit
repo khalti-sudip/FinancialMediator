@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 4 --threads 2 --worker-class=gthread --worker-connections=1000 --timeout 120 banking_project.wsgi:application"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 6 --threads 2 --worker-class=gthread --worker-connections=2000 --max-requests 10000 --max-requests-jitter 1000 --keep-alive 5 --timeout 120 banking_project.wsgi:application"]
 build = ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate"]
 
 [workflows]
