@@ -136,14 +136,29 @@ DATABASES = {
         'PORT': os.environ.get('PGPORT', '5432'),
         'OPTIONS': {
             'sslmode': 'require',
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+            'MAX_CONNS': 50,
+            'MIN_CONNS': 10,
+            'POOLING': True
         },
-        'CONN_MAX_AGE': 300,  # Persistent connections
-        'CONN_HEALTH_CHECKS': True,  # Enable connection health checks
+        'CONN_MAX_AGE': 600,
+        'CONN_HEALTH_CHECKS': True,
+    }
+}
+
+# Optimized cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'banking_middleware_cache',
+        'TIMEOUT': 300,
         'OPTIONS': {
-            'MAX_CONNS': 20,  # Maximum connections in the pool
-            'MIN_CONNS': 5,   # Minimum connections to maintain
-            'POOLING': True   # Enable connection pooling
-        },
+            'MAX_ENTRIES': 10000,
+            'CULL_FREQUENCY': 3,
+        }
     }
 }
 
