@@ -1,0 +1,86 @@
+Onboarding and Profile Management
+Use customer’s mobile number or any other parameters as per banks requirement as a unique identifier for eKYC and profile creation
+Facilitate the seamless opening of Demat, Meroshare, TMS,CASBA,PMS, SIP accounts.
+Data Validation and eKYC generation
+Demat Account Creation
+Meroshare Account Creation
+TMS Account Creation
+CASBA Creation
+PMS Account Creation
+SIP Account
+Standing Instruction for relevant service (DMAT,SIP)
+Possibility of KYC update for SIP Registration/Unit Purchase of the demat account holder of Nabil Invest. To fetch data from CDSC.
+Possibility of KYC Update of existing demat accountholders of Nabil Invest having bank account in Nabil Bank Ltd. through Nbank
+Data Exchange and Portfolio Tracking
+Fetch Portfolio details from Meroshare and sync with real-time Nepse data
+Show Portfolio performance along with Profit/Loss tracking
+Generate Portfolio summary report
+Show adjusted price and other information/notifications
+Portfolio sharing
+Fetch data for SIP payment, Unit Purchase and SI creation from mutual fund solution.
+Transaction Management
+Renewal for Meroshare and Demat account
+Payment for SIPs
+Easy settlement for the purchased shares directly through Bank account
+Load money in TMIS directly from the Bank account
+Payment links
+Proper narration needed in bank statement (BOID, Name, Product_Type)
+API Gateway Management
+Nepse and Information API for Bank to show reports to the users
+Payment API to Bank 
+Share purchase Payment
+DeMat and Meroshare Renewal
+Mutual Fund Open Ended Software
+IPO API to Wallet for easy share application
+CDSC
+KYC API to Wealth PMS system, Bank account opening and Demat account opening
+Messaging and Notification
+Price Adjustment
+Dividend Declaration
+Right shares
+Mergers/ Trade Suspensions
+Price alerts
+Reporting & Reconciliation
+All reconciled data should be made available to Bank through an automated mechanism
+As a backup, the reconciliation reports should be available in Secure File Transfer Protocol (SFTP) which is accessible by the Bank
+Dashboard should also be configured to provide all type of MIS, which will be required by the Bank as per need basis
+The Bidder should ensure compliance with all regulatory and audit requirements, providing necessary documentation and support during audits.
+The Bidder should implement robust data security measures to protect sensitive information during the reconciliation and reporting processes.
+The Bidder should offer training and support to the Bank’s staff to effectively use the reporting and reconciliation tools, ensuring smooth operation and maximum utility.
+Analytics Capability
+The Bidder should integrate with the Bank’s existing systems to enable seamless data sharing and comprehensive analytics across different data sources.
+Regulatory requirement
+Compliance to regulatory standards for Bank/ NRB,Stock Exchange, etc
+IT Requirements
+Cross platform availability.
+Hardware: required for hosting/running/DR & DB/Software to be advised by the vendor and hosted on Bank’s Hardware / Cloud.
+List of activities to be undertaken by the vendor, but not limited to:
+Operational processes with periodic review, including but not limited to
+a) Application Management
+b) Business Continuity Management
+c) Backup management
+d) Desktop/System/Server/Network device hardening with baseline controls
+e) Patch Management
+f) Port Management 
+g) Media Movement
+h) Log Management
+i)Security assessment processes
+Information security policy in place with periodic reviews
+A proper documented change management process.
+A documented policy and process of Incident management /response.
+The environment suitably protected from external threats by way of firewall, WAF, IDS/IPS, AD, AV, NAC, DLP etc.
+Log generation, storage, management, and analysis/monitoring.
+Maintain all Web, application, DB, Configuration, and user access logs for forensic readiness.
+API connectivity. All APIs must follow latest/standard encryption or as desired by Nabil.
+Captive SOC or Managed Service SOC for monitoring the systems and operations is not permitted.
+Deploy secure production, disaster recovery and testing environments for the application.
+Quarterly Vulnerability Assessment & Penetration Testing are conducted on your Infrastructure.
+Suitable Security certifications (ISO, PCI-DSS etc.) of the security posture at vendor environment must be in place.
+Any data shared by Nabil (Information Owner) and stored by Bidder will be bare minimum and pre-approved. The data must be encrypted as per industry best standards with robust key management.
+The data shared by Nabil to the Bidder must not be shared to any other party.
+AI enabled, Blockchain migratable & integrable platform
+No Sharing of data with any third party without explicit
+Program Manager should have an Information security policy in place with periodic reviews.
+Any data exchange should have encryption as per industry best standards with robust key management.
+Solution should provide Data Archival, Encryption and Retention policy parameters specific to Project/business requirement.
+The Engine should have the ability to produce models when fed with algorithms and data by programme managers. These models should be easily readable, easy to navigate, easy to modify, and be easily sharable with others if so desired.
