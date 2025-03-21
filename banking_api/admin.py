@@ -38,9 +38,9 @@ class DematAccountAdmin(ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(ModelAdmin):
-    list_display = ('id', 'customer', 'amount_display', 'transaction_type', 'status', 'created_at')
+    list_display = ('id', 'user_id', 'amount_display', 'transaction_type', 'status', 'created_at')
     list_filter = ('transaction_type', 'status', 'created_at')
-    search_fields = ('customer__username', 'reference_id')
+    search_fields = ('user_id', 'transaction_id')
     readonly_fields = ('created_at',)
     
     def amount_display(self, obj):
