@@ -5,94 +5,86 @@ A Django-based middleware application for managing banking operations, KYC, and 
 
 ## Features
 
-### 1. Onboarding and Profile Management
-- Mobile number-based unique customer identification
-- eKYC profile creation and validation
-- Integrated account creation for:
-  - Demat Account
-  - Meroshare Account
-  - TMS Account
-  - CASBA Account
-  - PMS Account
-  - SIP Account
-
-### 2. Data Exchange and Portfolio Management
-- Real-time portfolio tracking with Nepse data integration
-- Portfolio performance analytics
-- Profit/Loss tracking
-- Automated portfolio summary reports
-- Real-time price adjustments
-- Portfolio sharing capabilities
-
-### 3. Transaction Management
-- Automated account renewals (Meroshare and Demat)
-- SIP payment processing
-- Direct bank account settlement for share purchases
-- TMIS direct bank integration
-- Payment link generation
-- Detailed transaction narration in bank statements
-
-### 4. API Gateway Integration
-- Nepse data integration
-- Payment processing APIs
-- IPO application integration
-- CDSC connectivity
-- KYC validation APIs
-
-### 5. Notifications
-- Price adjustment alerts
-- Dividend declarations
-- Rights share announcements
-- Merger notifications
-- Trading suspension alerts
-- Custom price alerts
-
-### 6. Security Features
+### 1. Authentication & Security
 - JWT-based authentication
 - Role-based access control
 - Audit logging
+- API key management
 - Request rate limiting
 - Data encryption
 
+### 2. KYC & Account Management
+- Mobile number-based unique customer identification
+- KYC profile creation and verification
+- Demat account management
+- Portfolio tracking and analytics
+
+### 3. Transaction Management
+- Multi-system transaction tracking
+- Transaction status monitoring
+- Error handling and retries
+- Detailed transaction logging
+- Response data management
+
+### 4. System Configuration
+- Dynamic provider configuration
+- API authentication management
+- System health monitoring
+- Timeout and retry settings
+- Multi-provider support
+
 ## Technical Setup
 
-1. Install dependencies:
+1. Install project dependencies:
 ```bash
-python -m pip install -r requirements.txt
+python manage.py collectstatic
 ```
 
 2. Run migrations:
 ```bash
+python manage.py makemigrations
 python manage.py migrate
 ```
 
 3. Start the server:
 ```bash
-gunicorn --bind 0.0.0.0:5000 --workers 3 banking_project.wsgi:application
+gunicorn --bind 0.0.0.0:5000 --workers 3 --timeout 120 banking_project.wsgi:application
 ```
 
 ## API Documentation
 
-The API uses REST architecture with the following main endpoints:
+The API follows REST architecture with these main endpoints:
 
-- `/api/v1/kyc/` - KYC profile management
-- `/api/v1/accounts/` - Account creation and management
-- `/api/v1/portfolio/` - Portfolio tracking and analytics
-- `/api/v1/transactions/` - Transaction processing
-- `/api/v1/notifications/` - Alert management
+- `/api/auth/` - Authentication endpoints
+- `/api/kyc/` - KYC profile management
+- `/api/transactions/` - Transaction processing
+- `/api/system-config/` - System configuration
+- `/api/audit-logs/` - Audit trail access
 
-## Environment Variables
+## Models
 
-Required environment variables:
+- `User` - Custom user model for authentication
+- `KYCProfile` - Customer KYC information
+- `DematAccount` - Demat account details
+- `Transaction` - Transaction tracking
+- `SystemConfig` - Provider configuration
+- `ApiKey` - API authentication
+- `AuditLog` - System audit trail
+- `Portfolio` - Investment portfolio tracking
 
-- `DATABASE_URL` - PostgreSQL connection string
-- `SECRET_KEY` - Django secret key
-- `ALLOWED_HOSTS` - Comma-separated list of allowed hosts
-- `DEBUG` - Debug mode (True/False)
+## Development
 
-## Security Compliance
+The project uses:
+- Django for the web framework
+- Django REST Framework for API
+- JWT for authentication
+- PostgreSQL for database
+- Gunicorn for deployment
 
-- ISO 27001 compliant
-- PCI-DSS standards
-- NRB regulatory compliance
-- Implements industry-standard security measures
+## Security
+
+- ISO 27001 compliant architecture
+- Secure API key management
+- Comprehensive audit logging
+- Role-based access control
+- Request validation and sanitization
