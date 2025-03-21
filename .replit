@@ -41,6 +41,10 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+args = "python manage.py makemigrations"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
 args = "python manage.py migrate"
 
 [[workflows.workflow.tasks]]
