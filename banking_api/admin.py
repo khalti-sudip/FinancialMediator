@@ -2,7 +2,7 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin
 from django.utils.html import format_html
-from banking_api.models.kyc import KYC, DematAccount
+from banking_api.models.kyc import KYCProfile, DematAccount
 from banking_api.models.user import User
 from banking_api.models.transaction import Transaction
 from banking_api.models.audit_log import AuditLog
@@ -18,11 +18,11 @@ class UserAdmin(ModelAdmin):
         return f"{obj.first_name} {obj.last_name}"
     full_name.short_description = 'Name'
 
-@admin.register(KYC)
-class KYCAdmin(ModelAdmin):
-    list_display = ('user', 'mobile_number', 'status', 'verified_at', 'created_at')
-    list_filter = ('status', 'verified_at', 'created_at')
-    search_fields = ('user__username', 'mobile_number')
+@admin.register(KYCProfile)
+class KYCProfileAdmin(ModelAdmin):
+    list_display = ('user', 'mobile_number', 'full_name', 'is_verified', 'created_at')
+    list_filter = ('is_verified', 'created_at')
+    search_fields = ('user__username', 'mobile_number', 'full_name')
     ordering = ('-created_at',)
 
 @admin.register(DematAccount)
