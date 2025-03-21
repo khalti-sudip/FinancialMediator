@@ -2,27 +2,40 @@ import os
 import logging
 import logging.handlers
 import json
+import uuid
 from datetime import datetime
-from flask import current_app
 
 
 class RequestInfoFilter(logging.Filter):
     """
     Filter to add request-specific information to log records.
+    Safely handles both request and non-request contexts.
     """
     def filter(self, record):
-        from flask import has_request_context, g, request
+        try:
+            from flask import has_request_context, g, request
+            
+            if has_request_context():
+                # Generate request_id if not present
+                if not hasattr(g, 'request_id'):
+                    g.request_id = str(uuid.uuid4())
+                
+                record.request_id = g.request_id
+                record.remote_addr = request.remote_addr
+                record.url = request.path
+                record.method = request.method
+            else:
+                record.request_id = 'no_request_id'
+                record.remote_addr = 'no_remote_addr'
+                record.url = 'no_url'
+                record.method = 'no_method'
+        except Exception:
+            # Fallback for when Flask is not available or other errors
+            record.request_id = 'logging_error'
+            record.remote_addr = 'logging_error'
+            record.url = 'logging_error'
+            record.method = 'logging_error'
         
-        if has_request_context():
-            record.request_id = getattr(g, 'request_id', 'no_request_id')
-            record.remote_addr = request.remote_addr
-            record.url = request.path
-            record.method = request.method
-        else:
-            record.request_id = 'no_request_id'
-            record.remote_addr = 'no_remote_addr'
-            record.url = 'no_url'
-            record.method = 'no_method'
         return True
 
 
