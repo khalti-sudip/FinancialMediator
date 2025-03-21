@@ -27,9 +27,9 @@ class KYCProfileAdmin(ModelAdmin):
 
 @admin.register(DematAccount)
 class DematAccountAdmin(ModelAdmin):
-    list_display = ('account_number', 'user', 'status', 'balance_display')
+    list_display = ('id', 'user', 'status', 'balance_display')
     list_filter = ('status', 'created_at')
-    search_fields = ('account_number', 'user__username')
+    search_fields = ('id', 'user__username')
     
     def balance_display(self, obj):
         color = 'green' if obj.balance > 0 else 'red'
@@ -38,9 +38,9 @@ class DematAccountAdmin(ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(ModelAdmin):
-    list_display = ('id', 'user', 'amount_display', 'transaction_type', 'status', 'created_at')
+    list_display = ('id', 'customer', 'amount_display', 'transaction_type', 'status', 'created_at')
     list_filter = ('transaction_type', 'status', 'created_at')
-    search_fields = ('user__username', 'reference_id')
+    search_fields = ('customer__username', 'reference_id')
     readonly_fields = ('created_at',)
     
     def amount_display(self, obj):
