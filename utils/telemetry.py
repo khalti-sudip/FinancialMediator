@@ -9,12 +9,17 @@ from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from prometheus_client import start_http_server
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 def setup_telemetry():
     # Resource attributes for service identification
-    resource = Resource.create({"service.name": "banking-api"})
+    resource = Resource.create({
+        "service.name": "banking-api",
+        "service.instance.id": os.environ.get("REPLIT_DEPLOYMENT_ID", "local"),
+        "deployment.environment": "production" if os.environ.get("REPLIT_DEPLOYMENT") else "development"
+    })
     
     # Configure tracing
     tracer_provider = TracerProvider(resource=resource)
@@ -29,12 +34,12 @@ def setup_telemetry():
     start_http_server(port=9090, addr="0.0.0.0")
     
     # Instrument Django
-    DjangoInstrumentor().instrument()
+    DjangoInstrumentor().instrument(is_distributed=True)
     
     # Instrument logging
-    LoggingInstrumentor().instrument()
+    LoggingInstrumentor().instrument(set_logging_format=True)
     
     # Instrument HTTP requests
     RequestsInstrumentor().instrument()
     
-    logger.info("Telemetry setup completed")
+    logger.info("Telemetry setup completed for distributed environment")
