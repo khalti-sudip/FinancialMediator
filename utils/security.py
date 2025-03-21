@@ -108,7 +108,7 @@ def generate_nonce():
 
 def encrypt_sensitive_data(data, encryption_key):
     """
-    Encrypt sensitive data
+    Encrypt sensitive data using Fernet
     
     Args:
         data (str): The data to encrypt
@@ -117,9 +117,15 @@ def encrypt_sensitive_data(data, encryption_key):
     Returns:
         str: Encrypted data
     """
-    # This is a placeholder. In a real implementation, use a secure encryption library
-    logger.warning("Using placeholder encryption - not secure for production")
-    return f"ENCRYPTED:{data}"
+    from cryptography.fernet import Fernet
+    from base64 import b64encode
+    
+    if isinstance(data, str):
+        data = data.encode()
+    
+    f = Fernet(encryption_key)
+    encrypted_data = f.encrypt(data)
+    return b64encode(encrypted_data).decode()
 
 
 def decrypt_sensitive_data(encrypted_data, encryption_key):
