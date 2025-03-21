@@ -54,6 +54,11 @@ class JSONFormatter(logging.Formatter):
             'line': record.lineno,
         }
         
+        # Mask sensitive data and prevent duplicate handlers
+        def mask_sensitive_data(message):
+            import re
+            return re.sub(r'postgresql://[^@]+@', 'postgresql://****:****@', message)
+            
         # Add request info if available
         if hasattr(record, 'request_id'):
             log_record['request_id'] = record.request_id
@@ -63,6 +68,8 @@ class JSONFormatter(logging.Formatter):
             log_record['url'] = record.url
         if hasattr(record, 'method'):
             log_record['method'] = record.method
+            
+        log_record['message'] = mask_sensitive_data(log_record['message'])
         
         # Add exception info if available
         if record.exc_info:
