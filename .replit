@@ -5,7 +5,8 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 4 --threads 2 --worker-class=gthread --worker-connections=1000 --timeout 120 banking_project.wsgi:application"]
+build = ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate"]
 
 [workflows]
 runButton = "Banking API"
