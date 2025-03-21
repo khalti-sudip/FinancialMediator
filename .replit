@@ -50,7 +50,7 @@ args = "python manage.py migrate"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:5000 --workers 4 --threads 2 --worker-class=gthread --worker-connections=1000 --timeout 120 banking_project.wsgi:application"
+args = "uwsgi --ini uwsgi.ini"
 
 [[ports]]
 localPort = 5000

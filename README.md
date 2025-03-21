@@ -56,7 +56,7 @@ python manage.py migrate
 
 3. Start the optimized server:
 ```bash
-gunicorn --bind 0.0.0.0:5000 --workers 6 --threads 2 --worker-class=gthread --worker-connections=2000 --max-requests 10000 --max-requests-jitter 1000 --keep-alive 5 --timeout 120 banking_project.wsgi:application
+uwsgi --ini uwsgi.ini
 ```
 
 ## Monitoring & Metrics
@@ -110,7 +110,7 @@ RESTful endpoints:
 - Django & DRF
 - JWT Authentication
 - PostgreSQL Database
-- Gunicorn Server
+- uWSGI Server
 - OpenTelemetry
 - Prometheus Metrics
 
