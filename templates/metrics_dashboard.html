@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Banking API Metrics</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Banking API Metrics Dashboard</h1>
+    <div id="requestsGraph"></div>
+    <div id="latencyGraph"></div>
+    <script>
+        function fetchMetrics() {
+            fetch('http://0.0.0.0:9090/metrics')
+                .then(response => response.text())
+                .then(data => {
+                    // Parse and display metrics
+                    document.getElementById('metrics').textContent = data;
+                });
+        }
+        setInterval(fetchMetrics, 5000);
+    </script>
+</body>
+</html>
