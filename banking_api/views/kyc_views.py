@@ -2,6 +2,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from banking_api.models.kyc import KYCProfile, DematAccount, Portfolio
 from banking_api.serializers.kyc_serializer import (
     KYCProfileSerializer, DematAccountSerializer, PortfolioSerializer
