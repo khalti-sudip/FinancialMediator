@@ -1,6 +1,7 @@
 import uuid
 import logging
 from django.utils.deprecation import MiddlewareMixin
+from banking_api.utils.logging_config import set_current_request
 
 logger = logging.getLogger('banking_api')
 
@@ -17,6 +18,10 @@ class RequestIdMiddleware(MiddlewareMixin):
         """Process the request and attach a unique ID"""
         request_id = str(uuid.uuid4())
         request.request_id = request_id
+        
+        # Store request in thread local for logging
+        set_current_request(request)
+        
         logger.debug(f"Request ID assigned: {request_id}")
         return None
 
@@ -24,4 +29,8 @@ class RequestIdMiddleware(MiddlewareMixin):
         """Add request ID to response headers"""
         if hasattr(request, 'request_id'):
             response['X-Request-ID'] = request.request_id
+        
+        # Clear the thread local request at the end of the request
+        set_current_request(None)
+        
         return response

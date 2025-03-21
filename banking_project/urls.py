@@ -26,6 +26,8 @@ from banking_api.views import (
     SystemConfigViewSet, AuditLogViewSet,
     LoginView, RegisterView, VerifyTokenView
 )
+from banking_api.views.health_views import HealthCheckView
+from banking_api.views.index_views import IndexView
 
 # API Router
 router = routers.DefaultRouter()
@@ -37,6 +39,7 @@ router.register(r'audit-logs', AuditLogViewSet)
 
 # URLs
 urlpatterns = [
+    path('', IndexView.as_view(), name='index'),
     path('admin/', admin.site.urls),
     
     # API Endpoints
@@ -47,6 +50,10 @@ urlpatterns = [
     path('api/auth/register/', RegisterView.as_view(), name='register'),
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/verify/', VerifyTokenView.as_view(), name='token_verify'),
+    
+    # Health Check
+    path('api/health/', HealthCheckView.as_view(), name='health_check'),
+    path('health/', HealthCheckView.as_view(), name='health_check_alt'),
     
     # API Documentation and Browser
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),

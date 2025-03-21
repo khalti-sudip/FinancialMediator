@@ -1,109 +1,134 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Banking Middleware API</title>
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .endpoint-card {
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .endpoint-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .jumbotron {
+            background-color: var(--bs-dark);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 0.3rem;
+        }
+        pre {
+            background-color: var(--bs-dark);
+            padding: 1rem;
+            border-radius: 0.3rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="container py-4">
-        <header class="pb-3 mb-4 border-bottom">
-            <div class="d-flex align-items-center text-body-emphasis text-decoration-none">
-                <span class="fs-4">Banking Middleware API</span>
-            </div>
-        </header>
-
-        <div class="p-5 mb-4 bg-body-tertiary rounded-3">
-            <div class="container-fluid py-5">
-                <h1 class="display-5 fw-bold">Financial Services Integration Middleware</h1>
-                <p class="col-md-8 fs-4">
-                    A secure and reliable API for connecting financial service providers with banking applications.
-                </p>
-                <a href="/status" class="btn btn-primary btn-lg" type="button">Check System Status</a>
-            </div>
+    <div class="container">
+        <div class="jumbotron">
+            <h1 class="display-4">Banking Middleware API</h1>
+            <p class="lead">Secure, reliable connection between financial service providers and banking applications</p>
+            <hr class="my-4">
+            <p>This middleware serves as a bridge between different financial systems, maintaining security and data integrity.</p>
+            <p>
+                <a class="btn btn-primary" href="/api/health/" role="button">Check API Health</a>
+                <a class="btn btn-secondary" href="/api-auth/" role="button">API Browser</a>
+            </p>
         </div>
 
-        <div class="row align-items-md-stretch">
+        <div class="row">
             <div class="col-md-6">
-                <div class="h-100 p-5 text-bg-dark rounded-3">
-                    <h2>API Documentation</h2>
-                    <p>Explore our comprehensive API documentation to integrate financial service providers with banking systems.</p>
-                    <p>Key Features:</p>
-                    <ul>
-                        <li>Secure data transfer between systems</li>
-                        <li>Transaction routing</li>
-                        <li>Request/response transformation</li>
-                        <li>Error handling and logging</li>
-                    </ul>
-                    <button class="btn btn-outline-light" type="button">View Documentation</button>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="h-100 p-5 bg-body-tertiary border rounded-3">
-                    <h2>System Health</h2>
-                    <p>All systems operational and ready to process transactions.</p>
-                    <div class="dashboard-panel">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-3">
-                                    <span class="health-indicator healthy"></span>
-                                    <span>API Gateway</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-3">
-                                    <span class="health-indicator healthy"></span>
-                                    <span>Authentication Service</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-3">
-                                    <span class="health-indicator healthy"></span>
-                                    <span>Transaction Processor</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-3">
-                                    <span class="health-indicator healthy"></span>
-                                    <span>Database</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-3">
-                                    <span class="health-indicator healthy"></span>
-                                    <span>Caching Service</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-3">
-                                    <span class="health-indicator healthy"></span>
-                                    <span>Logging System</span>
-                                </div>
-                            </div>
+                <h2>API Endpoints</h2>
+                <div class="list-group">
+                    <a href="/api/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/</h5>
                         </div>
-                    </div>
-                    <button class="btn btn-outline-secondary" type="button" id="refreshStatus">Refresh Status</button>
+                        <p class="mb-1">API root with all available endpoints</p>
+                    </a>
+                    <a href="/api/health/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/health/</h5>
+                        </div>
+                        <p class="mb-1">Health check endpoint</p>
+                    </a>
+                    <a href="/api/auth/login/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/auth/login/</h5>
+                        </div>
+                        <p class="mb-1">Authentication endpoint</p>
+                    </a>
+                    <a href="/api/auth/register/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/auth/register/</h5>
+                        </div>
+                        <p class="mb-1">Registration endpoint</p>
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h2>Resource Endpoints</h2>
+                <div class="list-group">
+                    <a href="/api/users/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/users/</h5>
+                        </div>
+                        <p class="mb-1">User management</p>
+                    </a>
+                    <a href="/api/transactions/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/transactions/</h5>
+                        </div>
+                        <p class="mb-1">Transaction management</p>
+                    </a>
+                    <a href="/api/api-keys/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/api-keys/</h5>
+                        </div>
+                        <p class="mb-1">API key management</p>
+                    </a>
+                    <a href="/api/system-configs/" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">/api/system-configs/</h5>
+                        </div>
+                        <p class="mb-1">System configuration management</p>
+                    </a>
                 </div>
             </div>
         </div>
 
-        <footer class="pt-3 mt-4 text-body-secondary border-top">
-            Banking Middleware API &copy; 2023
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h2>Authentication Example</h2>
+                <pre class="text-light">
+# Login to get token
+curl -X POST http://localhost:5000/api/auth/login/ \
+     -H "Content-Type: application/json" \
+     -d '{"username": "admin", "password": "password"}'
+
+# Use token in subsequent requests
+curl -X GET http://localhost:5000/api/users/ \
+     -H "Authorization: Bearer your_access_token_here"
+                </pre>
+            </div>
+        </div>
+
+        <footer class="my-5 pt-5 text-muted text-center text-small">
+            <p class="mb-1">&copy; 2025 Banking Middleware API</p>
+            <ul class="list-inline">
+                <li class="list-inline-item"><a href="/api/health/">Health</a></li>
+                <li class="list-inline-item"><a href="/api-auth/">API</a></li>
+                <li class="list-inline-item"><a href="/admin/">Admin</a></li>
+            </ul>
         </footer>
     </div>
-
-    <script>
-        // Simple script to refresh status
-        document.getElementById('refreshStatus').addEventListener('click', function() {
-            fetch('/api/v1/middleware/health')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'healthy') {
-                        alert('All systems operational');
-                    } else {
-                        alert('System issues detected. Please check the status page for details.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Unable to connect to the health check service.');
-                });
-        });
-    </script>
 </body>
 </html>
