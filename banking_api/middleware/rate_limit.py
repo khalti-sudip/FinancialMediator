@@ -21,3 +21,15 @@ class RateLimitMiddleware:
             cache.set(cache_key, request_count + 1, self.rate_period)
         
         return self.get_response(request)
+from django.core.cache import cache
+from rest_framework.throttling import SimpleRateThrottle
+
+class CustomRateThrottle(SimpleRateThrottle):
+    rate = '100/minute'  # Adjust as needed
+    
+    def get_cache_key(self, request, view):
+        if request.user.is_authenticated:
+            ident = request.user.pk
+        else:
+            ident = self.get_ident(request)
+        return f"throttle_{ident}"

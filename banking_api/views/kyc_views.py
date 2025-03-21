@@ -29,14 +29,15 @@ class DematAccountViewSet(viewsets.ModelViewSet):
         return Response({'status': 'renewed'})
 
 class PortfolioViewSet(viewsets.ModelViewSet):
-    queryset = Portfolio.objects.all()
+    queryset = Portfolio.objects.select_related('user').prefetch_related('transactions')
     serializer_class = PortfolioSerializer
 
     @action(detail=False, methods=['get'])
+    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
     def summary(self, request):
         portfolios = self.get_queryset()
         total_value = sum(
-            p.quantity * p.current_price for p in portfolios
+            p.quantity * p.current_price for p in portfolios.only('quantity', 'current_price')
         )
         return Response({
             'total_value': total_value,

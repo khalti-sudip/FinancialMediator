@@ -138,6 +138,11 @@ DATABASES = {
         },
         'CONN_MAX_AGE': 300,  # Persistent connections
         'CONN_HEALTH_CHECKS': True,  # Enable connection health checks
+        'OPTIONS': {
+            'MAX_CONNS': 20,  # Maximum connections in the pool
+            'MIN_CONNS': 5,   # Minimum connections to maintain
+            'POOLING': True   # Enable connection pooling
+        },
     }
 }
 
