@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     
     # Local apps
@@ -255,6 +257,9 @@ CACHES = {
         'TIMEOUT': 300,  # 5 minutes
     }
 }
+
+# Custom user model
+AUTH_USER_MODEL = 'banking_api.User'
 
 # Banking middleware specific settings
 BANKING_API_URL = os.environ.get('BANKING_API_URL', 'http://localhost:8001/api')

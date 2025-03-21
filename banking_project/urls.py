@@ -15,8 +15,43 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from rest_framework import routers
+from rest_framework_simplejwt.views import TokenRefreshView
 
+from banking_api.views import (
+    UserViewSet, TransactionViewSet, ApiKeyViewSet, 
+    SystemConfigViewSet, AuditLogViewSet,
+    LoginView, RegisterView, VerifyTokenView
+)
+
+# API Router
+router = routers.DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'transactions', TransactionViewSet)
+router.register(r'api-keys', ApiKeyViewSet)
+router.register(r'system-configs', SystemConfigViewSet)
+router.register(r'audit-logs', AuditLogViewSet)
+
+# URLs
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # API Endpoints
+    path('api/', include(router.urls)),
+    
+    # Authentication
+    path('api/auth/login/', LoginView.as_view(), name='login'),
+    path('api/auth/register/', RegisterView.as_view(), name='register'),
+    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/auth/verify/', VerifyTokenView.as_view(), name='token_verify'),
+    
+    # API Documentation and Browser
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]
+
+# Serve static files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
