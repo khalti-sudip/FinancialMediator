@@ -1,11 +1,10 @@
 import os
 import logging
-
 from flask import Flask
-from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_jwt_extended import JWTManager
+from utils.error_handlers import register_error_handlers
 
 
 class Base(DeclarativeBase):
@@ -16,64 +15,67 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 jwt = JWTManager()
 
-# Create the Flask application
-app = Flask(__name__)
-api = Api(app)
+# Set up basic logging before app creation
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Load configuration
-app.config.from_object('config.Config')
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
-# Configure JWT
-app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "dev-jwt-secret")
-jwt.init_app(app)
-
-# Configure database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///banking_middleware.db")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db.init_app(app)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
-# Register API resources
-def register_resources():
-    from api.resources.transaction import TransactionResource, TransactionListResource
-    from api.resources.provider import ProviderResource, ProviderListResource
-    from api.resources.status import StatusResource
-    from api.resources.auth import AuthResource, TokenRefreshResource
+def create_app(config_name='default'):
+    """Create and configure the Flask application."""
+    app = Flask(__name__)
     
-    # Transaction endpoints
-    api.add_resource(TransactionResource, '/api/v1/transactions/<transaction_id>')
-    api.add_resource(TransactionListResource, '/api/v1/transactions')
+    # Load configuration
+    from config import config
+    app.config.from_object(config[config_name])
     
-    # Provider endpoints
-    api.add_resource(ProviderResource, '/api/v1/providers/<provider_id>')
-    api.add_resource(ProviderListResource, '/api/v1/providers')
+    # Set secret key from environment variable
+    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
     
-    # Status endpoint
-    api.add_resource(StatusResource, '/api/v1/status')
+    # Initialize extensions with app
+    db.init_app(app)
+    jwt.init_app(app)
     
-    # Auth endpoints
-    api.add_resource(AuthResource, '/api/v1/auth')
-    api.add_resource(TokenRefreshResource, '/api/v1/auth/refresh')
-
-# Initialize database
-with app.app_context():
-    # Import models to ensure they're registered with SQLAlchemy
-    import models
+    # Register error handlers
+    register_error_handlers(app)
+    
+    # Configure advanced logging system within the app context
+    with app.app_context():
+        from utils.logging_config import configure_logging
+        configure_logging(app.config.get('LOG_LEVEL', 'INFO'))
+    
+    # Register blueprints
+    from api.middleware import middleware_bp
+    from api.auth import auth_bp
+    from api.providers import providers_bp
+    from api.banking import banking_bp
+    
+    app.register_blueprint(middleware_bp, url_prefix='/api/v1/middleware')
+    app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+    app.register_blueprint(providers_bp, url_prefix='/api/v1/providers')
+    app.register_blueprint(banking_bp, url_prefix='/api/v1/banking')
     
     # Create database tables
-    db.create_all()
+    with app.app_context():
+        db.create_all()
+        logger.info("Database tables created")
     
-    # Register API resources
-    register_resources()
+    @app.route('/')
+    def index():
+        """Render the main page"""
+        from flask import render_template
+        return render_template('index.html')
     
-    app.logger.info("Banking Middleware API initialized successfully")
+    @app.route('/status')
+    def status():
+        """Simple status endpoint for monitoring"""
+        from flask import render_template
+        return render_template('status.html')
+    
+    logger.info("Application initialized successfully")
+    return app
+
+
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

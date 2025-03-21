@@ -1,85 +1,112 @@
 from datetime import datetime
 from app import db
 from flask_login import UserMixin
-from enum import Enum
-
-
-class TransactionStatus(str, Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class User(UserMixin, db.Model):
-    """User model for API authentication"""
+    """User model for authentication"""
+    __tablename__ = 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(50), default='user')
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_login = db.Column(db.DateTime)
-    role = db.Column(db.String(50), default='user')
-
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def set_password(self, password):
+        """Set the password hash"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """Check if the provided password matches the hash"""
+        return check_password_hash(self.password_hash, password)
+    
     def __repr__(self):
         return f'<User {self.username}>'
 
 
-class Provider(db.Model):
-    """Financial service provider model"""
+class ApiKey(db.Model):
+    """API key model for tracking external system credentials"""
+    __tablename__ = 'api_keys'
+    
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=False)
-    api_key = db.Column(db.String(256))
-    api_url = db.Column(db.String(256), nullable=False)
-    status = db.Column(db.Boolean, default=True)  # whether the provider is active
-    description = db.Column(db.Text)
-    config = db.Column(db.JSON)  # store provider-specific configuration
+    name = db.Column(db.String(100), nullable=False)
+    key_value = db.Column(db.String(256), nullable=False)
+    secret_value = db.Column(db.String(256), nullable=True)
+    provider_type = db.Column(db.String(50), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-
-    transactions = db.relationship('Transaction', backref='provider', lazy=True)
-
+    expires_at = db.Column(db.DateTime, nullable=True)
+    
     def __repr__(self):
-        return f'<Provider {self.name}>'
+        return f'<ApiKey {self.name} - {self.provider_type}>'
 
 
 class Transaction(db.Model):
-    """Transaction model for tracking financial transactions"""
+    """Transaction model for tracking middleware operations"""
+    __tablename__ = 'transactions'
+    
     id = db.Column(db.Integer, primary_key=True)
-    external_id = db.Column(db.String(128), unique=True)  # ID from external system
-    provider_id = db.Column(db.Integer, db.ForeignKey('provider.id'), nullable=False)
-    status = db.Column(db.String(50), default=TransactionStatus.PENDING)
-    amount = db.Column(db.Float, nullable=False)
-    currency = db.Column(db.String(3), nullable=False, default='USD')
+    transaction_id = db.Column(db.String(100), unique=True, nullable=False)
+    source_system = db.Column(db.String(50), nullable=False)
+    target_system = db.Column(db.String(50), nullable=False)
     transaction_type = db.Column(db.String(50), nullable=False)
-    request_data = db.Column(db.JSON)  # original request data
-    response_data = db.Column(db.JSON)  # response data
-    error_message = db.Column(db.Text)
-    customer_id = db.Column(db.String(128))  # ID of the customer in the banking system
+    status = db.Column(db.String(50), default='pending')
+    amount = db.Column(db.Float, nullable=True)
+    currency = db.Column(db.String(10), nullable=True)
+    user_id = db.Column(db.String(100), nullable=True)
+    request_data = db.Column(db.Text, nullable=True)
+    response_data = db.Column(db.Text, nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
     def __repr__(self):
-        return f'<Transaction {self.id} ({self.status})>'
+        return f'<Transaction {self.transaction_id} - {self.status}>'
 
 
-class ApiLog(db.Model):
-    """Log for API requests and responses"""
+class SystemConfig(db.Model):
+    """System configuration for providers and integration settings"""
+    __tablename__ = 'system_config'
+    
     id = db.Column(db.Integer, primary_key=True)
-    endpoint = db.Column(db.String(256), nullable=False)
-    method = db.Column(db.String(10), nullable=False)
-    request_data = db.Column(db.JSON)
-    response_data = db.Column(db.JSON)
-    status_code = db.Column(db.Integer)
-    ip_address = db.Column(db.String(39))  # IPv6 addresses can be up to 39 chars
-    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    duration_ms = db.Column(db.Float)  # response time in milliseconds
+    system_name = db.Column(db.String(100), unique=True, nullable=False)
+    system_type = db.Column(db.String(50), nullable=False)
+    base_url = db.Column(db.String(256), nullable=False)
+    auth_type = db.Column(db.String(50), default='api_key')
+    api_key_id = db.Column(db.Integer, db.ForeignKey('api_keys.id'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    timeout = db.Column(db.Integer, default=30)  # Request timeout in seconds
+    retry_count = db.Column(db.Integer, default=3)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    transaction = db.relationship('Transaction', backref='logs')
-    user = db.relationship('User', backref='logs')
-
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    api_key = db.relationship('ApiKey', backref='system_configs')
+    
     def __repr__(self):
-        return f'<ApiLog {self.id} {self.endpoint} {self.status_code}>'
+        return f'<SystemConfig {self.system_name} - {self.system_type}>'
+
+
+class AuditLog(db.Model):
+    """Audit log for tracking operations and changes"""
+    __tablename__ = 'audit_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    action = db.Column(db.String(100), nullable=False)
+    resource_type = db.Column(db.String(50), nullable=False)
+    resource_id = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    details = db.Column(db.Text, nullable=True)
+    ip_address = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='audit_logs')
+    
+    def __repr__(self):
+        return f'<AuditLog {self.action} - {self.resource_type} - {self.resource_id}>'

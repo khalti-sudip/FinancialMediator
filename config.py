@@ -1,34 +1,80 @@
 import os
-from datetime import timedelta
+import datetime
 
 
 class Config:
-    """Base configuration"""
+    """Base configuration."""
     # Flask configuration
+    DEBUG = False
+    TESTING = False
     SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
-    DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+    
+    # Database configuration
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///banking_middleware.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
     
     # JWT configuration
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=30)
     
-    # Redis cache configuration (optional)
-    REDIS_URL = os.environ.get('REDIS_URL')
-    CACHE_TYPE = 'redis' if REDIS_URL else 'simple'
-    CACHE_REDIS_URL = REDIS_URL
-    CACHE_DEFAULT_TIMEOUT = 300  # 5 minutes
+    # API configurations
+    BANKING_API_URL = os.environ.get('BANKING_API_URL', 'http://localhost:8001/api')
+    BANKING_API_KEY = os.environ.get('BANKING_API_KEY', '')
     
-    # Banking API configuration
-    BANKING_API_URL = os.environ.get('BANKING_API_URL', 'https://mock-banking-api.example.com')
-    BANKING_API_KEY = os.environ.get('BANKING_API_KEY', 'sample-banking-api-key')
+    # Financial service provider configurations
+    FSP_API_URL = os.environ.get('FSP_API_URL', 'http://localhost:8002/api')
+    FSP_API_KEY = os.environ.get('FSP_API_KEY', '')
+    FSP_API_SECRET = os.environ.get('FSP_API_SECRET', '')
     
-    # Financial provider default configuration
-    DEFAULT_PROVIDER_URL = os.environ.get('DEFAULT_PROVIDER_URL', 'https://mock-provider-api.example.com')
-    DEFAULT_PROVIDER_KEY = os.environ.get('DEFAULT_PROVIDER_KEY', 'sample-provider-api-key')
+    # Cache configuration
+    CACHE_TYPE = 'SimpleCache'  # Can be 'redis' in production
+    CACHE_DEFAULT_TIMEOUT = 300
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
     
     # Logging configuration
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG')
-    
-    # Transaction configuration
-    TRANSACTION_TIMEOUT = int(os.environ.get('TRANSACTION_TIMEOUT', '3600'))  # 1 hour in seconds
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+
+class DevelopmentConfig(Config):
+    """Development configuration."""
+    DEBUG = True
+    LOG_LEVEL = 'DEBUG'
+
+
+class TestingConfig(Config):
+    """Testing configuration."""
+    TESTING = True
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(seconds=5)
+    JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(seconds=10)
+
+
+class ProductionConfig(Config):
+    """Production configuration."""
+    DEBUG = False
+    LOG_LEVEL = 'INFO'
+    # Set more secure values for production
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+        "pool_size": 10,
+        "max_overflow": 20,
+    }
+    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(minutes=30)
+    CACHE_TYPE = 'RedisCache'
+
+
+# Create a dictionary of configurations
+config = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
+}
