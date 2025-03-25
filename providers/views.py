@@ -7,11 +7,11 @@ from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as filters
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-from .models import Provider, ProviderEndpoint, ProviderCredential
+from .models import Provider, ProviderKey, ProviderWebhook
 from .serializers import (
     ProviderSerializer,
-    ProviderEndpointSerializer,
-    ProviderCredentialSerializer,
+    ProviderKeySerializer,
+    ProviderWebhookSerializer,
 )
 from api.middleware.request_tracking import track_request
 from api.middleware.rate_limiter import rate_limit
@@ -40,74 +40,81 @@ class ProviderViewSet(viewsets.ModelViewSet):
     filterset_class = ProviderFilter
 
     @track_request
+    @rate_limit()
     def list(self, request, *args, **kwargs):
         """List all providers."""
         return super().list(request, *args, **kwargs)
 
     @track_request
+    @rate_limit()
     def create(self, request, *args, **kwargs):
         """Create a new provider."""
         return super().create(request, *args, **kwargs)
 
-    @track_request
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                name="provider_id",
-                type=int,
+                name="pk",
+                type={"type": "integer"},
                 location=OpenApiParameter.PATH,
                 description="Provider ID",
-            )
-        ]
+            ),
+        ],
+        responses={200: {"type": "object", "properties": {"status": {"type": "string"}}}},
     )
     @action(detail=True, methods=["post"])
-    @rate_limit(requests=10, duration=60)
+    @track_request
+    @rate_limit()
     def test_connection(self, request, pk=None):
         """Test the connection to a provider."""
         provider = self.get_object()
+        
         try:
-            # Implement provider connection test logic here
-            return Response({"status": "success", "message": "Connection successful"})
+            # Implementation for testing connection
+            # This would typically call a service method
+            connected = True
+            message = "Connection successful"
         except Exception as e:
-            return Response(
-                {"status": "error", "message": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            connected = False
+            message = str(e)
+        
+        return Response(
+            {"status": "success" if connected else "error", "message": message},
+            status=status.HTTP_200_OK if connected else status.HTTP_400_BAD_REQUEST,
+        )
 
 
-class ProviderEndpointViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing provider endpoints."""
+class ProviderKeyViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing provider keys."""
 
-    serializer_class = ProviderEndpointSerializer
+    serializer_class = ProviderKeySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Get the queryset for provider endpoints."""
-        provider_id = self.kwargs.get("provider_pk")
-        if provider_id is None:
-            return ProviderEndpoint.objects.none()
-        return ProviderEndpoint.objects.filter(provider_id=provider_id)
+        """Get the queryset for provider keys."""
+        provider_pk = self.kwargs.get("provider_pk")
+        return ProviderKey.objects.filter(provider_id=provider_pk)
 
     def perform_create(self, serializer):
-        """Create a new provider endpoint."""
-        provider = get_object_or_404(Provider, pk=self.kwargs.get("provider_pk"))
-        serializer.save(provider=provider)
+        """Create a new provider key."""
+        provider_pk = self.kwargs.get("provider_pk")
+        provider = get_object_or_404(Provider, pk=provider_pk)
+        serializer.save(provider=provider, user=self.request.user)
 
 
-class ProviderCredentialViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing provider credentials."""
+class ProviderWebhookViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing provider webhooks."""
 
-    serializer_class = ProviderCredentialSerializer
+    serializer_class = ProviderWebhookSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Get the queryset for provider credentials."""
-        provider_id = self.kwargs.get("provider_pk")
-        if provider_id is None:
-            return ProviderCredential.objects.none()
-        return ProviderCredential.objects.filter(provider_id=provider_id)
+        """Get the queryset for provider webhooks."""
+        provider_pk = self.kwargs.get("provider_pk")
+        return ProviderWebhook.objects.filter(provider_id=provider_pk)
 
     def perform_create(self, serializer):
-        """Create a new provider credential."""
-        provider = get_object_or_404(Provider, pk=self.kwargs.get("provider_pk"))
+        """Create a new provider webhook."""
+        provider_pk = self.kwargs.get("provider_pk")
+        provider = get_object_or_404(Provider, pk=provider_pk)
         serializer.save(provider=provider)

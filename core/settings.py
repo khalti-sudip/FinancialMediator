@@ -105,6 +105,7 @@ MIDDLEWARE = [
     
     # Custom middleware
     'api.middleware.request_tracking.RequestTrackingMiddleware',
+    'api.middleware.rate_limiter.RateLimitMiddleware',
     
     # Monitoring - should be last to accurately measure response timing
     'django_prometheus.middleware.PrometheusAfterMiddleware',

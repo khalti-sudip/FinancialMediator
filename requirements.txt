@@ -1,57 +1,52 @@
 # Core Django Dependencies
-Django==4.2.7
+Django==4.2.7  # Downgraded from 5.0.0 for compatibility with django-celery-beat
 djangorestframework==3.14.0
 django-environ==0.11.2
 django-cors-headers==4.3.1
 django-filter==23.5
 django-prometheus==2.3.1
 django-redis==5.4.0
+whitenoise==6.6.0  # For serving static files
 
 # Authentication & Security
 djangorestframework-simplejwt==5.3.1
 django-guardian==2.4.0
 cryptography==41.0.7
+django-ratelimit==4.1.0  # For API rate limiting protection
 
 # Database & Caching
 psycopg2-binary==2.9.9
 redis==5.0.1
+django-cachalot==2.6.1  # Query caching for improved performance
 
 # Task Queue & Background Jobs
 celery==5.3.6
-django-celery-beat==2.5.0
+django-celery-beat==2.5.0  # Must be used with Django < 5.0
 django-celery-results==2.5.1
+kombu==5.3.4  # Messaging library used by Celery
 
 # API Documentation
 drf-spectacular==0.27.0
 drf-spectacular-sidecar==2024.1.1
+markdown==3.5.2  # For API documentation rendering
 
 # Monitoring & Logging
 sentry-sdk==1.39.1
 python-json-logger==2.0.7
 prometheus-client==0.19.0
 
-# Testing & Development
+# Testing
 pytest==7.4.3
 pytest-django==4.7.0
 pytest-cov==4.1.0
-black==23.12.1
-flake8==6.1.0
-isort==5.13.2
+factory-boy==3.3.0  # For creating test data factories
 
-# Web Server & Static Files
-gunicorn==21.2.0
-whitenoise==6.6.0
+# Development Tools
+black==23.12.0  # Code formatting
+isort==5.13.2  # Import sorting
+flake8==6.1.0  # Code linting
+django-debug-toolbar==4.2.0  # For debugging in development
 
-# Utilities & Helpers
-python-dateutil==2.8.2
-requests==2.31.0
-pyyaml==6.0.1
-urllib3==2.1.0
-
-# WebSocket Support
-channels==4.0.0
-channels-redis==4.1.0
-
-# Production Dependencies
-supervisor==4.2.5
-newrelic==9.3.0
+# Production
+gunicorn==21.2.0  # WSGI HTTP Server for production
+dj-database-url==2.1.0  # For database configuration via URLs
