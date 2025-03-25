@@ -7,12 +7,14 @@ from django.conf import settings
 from django.shortcuts import render
 from django.http import HttpRequest
 
-logger = logging.getLogger('banking_api')
+logger = logging.getLogger("banking_api")
+
 
 class IndexView(APIView):
     """API view for root endpoint"""
+
     permission_classes = [AllowAny]
-    
+
     def get(self, request):
         """
         Root endpoint to display API information
@@ -20,7 +22,7 @@ class IndexView(APIView):
         returns JSON response for API requests
         """
         # Check if the request wants JSON (API client)
-        if 'application/json' in request.headers.get('Accept', ''):
+        if "application/json" in request.headers.get("Accept", ""):
             api_info = {
                 "name": "Banking Middleware API",
                 "version": "1.0.0",
@@ -33,16 +35,20 @@ class IndexView(APIView):
                     "api/users/": "User management",
                     "api/transactions/": "Transaction management",
                     "api/api-keys/": "API key management",
-                    "api/system-configs/": "System configuration management"
+                    "api/system-configs/": "System configuration management",
                 },
                 "documentation": "/api-auth/",
-                "environment": "development" if settings.DEBUG else "production"
+                "environment": "development" if settings.DEBUG else "production",
             }
-            
+
             return Response(api_info, status=status.HTTP_200_OK)
-        
+
         # Otherwise render the HTML template (browser)
-        return render(request, 'index.html', {
-            'api_version': '1.0.0',
-            'environment': 'development' if settings.DEBUG else 'production'
-        })
+        return render(
+            request,
+            "index.html",
+            {
+                "api_version": "1.0.0",
+                "environment": "development" if settings.DEBUG else "production",
+            },
+        )

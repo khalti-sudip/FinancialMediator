@@ -1,136 +1,174 @@
+# Financial Mediator API
 
-# Banking Middleware API
-
-A Django-based middleware application for managing banking operations, KYC, and investment accounts integration, with distributed tracing and monitoring capabilities.
+A Django REST Framework-based API that mediates financial transactions between various payment providers and banking systems.
 
 ## Features
 
-### 1. Authentication & Security
-- JWT-based authentication
-- Role-based access control
-- Audit logging
-- API key management
-- Request rate limiting
-- Data encryption
+- **Provider Integration**: Seamless integration with multiple financial service providers
+- **Transaction Management**: Handle various types of financial transactions
+- **Authentication & Security**: JWT-based authentication and robust security measures
+- **Caching & Performance**: Redis-based caching for optimal performance
+- **Task Queue**: Celery-based background task processing
+- **Monitoring**: Prometheus metrics and Sentry error tracking
+- **API Documentation**: OpenAPI/Swagger documentation
+- **WebSocket Support**: Real-time transaction updates
 
-### 2. KYC & Account Management
-- Mobile number-based unique customer identification
-- KYC profile creation and verification
-- Demat account management
-- Portfolio tracking and analytics
+## Tech Stack
 
-### 3. Transaction Management
-- Multi-system transaction tracking
-- Transaction status monitoring
-- Error handling and retries
-- Detailed transaction logging
-- Response data management
+- **Framework**: Django 5.0 with Django REST Framework
+- **Database**: PostgreSQL
+- **Cache**: Redis
+- **Task Queue**: Celery with Redis broker
+- **Documentation**: drf-spectacular
+- **Monitoring**: Prometheus, Sentry
+- **Testing**: pytest
 
-### 4. System Configuration
-- Dynamic provider configuration
-- API authentication management
-- System health monitoring
-- Timeout and retry settings
-- Multi-provider support
+## Prerequisites
 
-### 5. Monitoring & Observability
-- Distributed tracing with OpenTelemetry
-- Sampling-based trace collection
-- Prometheus metrics with custom dashboards
-- Enhanced logging with correlation IDs
-- Real-time performance monitoring
-- Resource utilization tracking
+- Python 3.10+
+- PostgreSQL 14+
+- Redis 6+
 
-## Technical Setup
+## Installation
 
-1. Install project dependencies:
+1. Clone the repository:
 ```bash
-python -m pip install -r requirements.txt
+git clone https://github.com/yourusername/financial-mediator.git
+cd financial-mediator
 ```
 
-2. Setup database and static files:
+2. Create and activate a virtual environment:
 ```bash
-python manage.py collectstatic --noinput
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+5. Run database migrations:
+```bash
 python manage.py migrate
 ```
 
-3. Start the optimized server:
+6. Create a superuser:
 ```bash
-uwsgi --ini uwsgi.ini
+python manage.py createsuperuser
 ```
 
-## Monitoring & Metrics
+## Running the Application
 
-- Metrics dashboard: `/metrics_dashboard.html`
-- Prometheus endpoint: `http://0.0.0.0:9090/metrics`
-- Application logs: `logs/banking_middleware.log`
-- Trace sampling rate: 50%
-- Metric collection interval: 5 seconds
+1. Start Redis:
+```bash
+redis-server
+```
 
-## Database Configuration
+2. Start Celery worker:
+```bash
+celery -A core worker -l info
+```
 
-- Connection pooling enabled
-- Min connections: 10
-- Max connections: 50
-- Connection timeout: 600s
-- Keep-alive settings optimized
-- Health checks enabled
+3. Start Celery beat (for scheduled tasks):
+```bash
+celery -A core beat -l info
+```
 
-## Cache Configuration
-
-- Backend: LocMemCache
-- Location: banking_middleware_cache
-- Timeout: 300 seconds
-- Max entries: 10000
-- Cull frequency: 3
+4. Run the development server:
+```bash
+python manage.py runserver
+```
 
 ## API Documentation
 
-RESTful endpoints:
+- Swagger UI: http://localhost:8000/api/docs/
+- ReDoc: http://localhost:8000/api/redoc/
+- OpenAPI Schema: http://localhost:8000/api/schema/
 
-- `/api/auth/` - Authentication
-- `/api/kyc/` - KYC management
-- `/api/transactions/` - Transaction processing
-- `/api/system-config/` - System settings
-- `/api/audit-logs/` - Audit trails
+## Testing
 
-## Models
+Run the test suite:
+```bash
+pytest
+```
 
-- `User` - Authentication
-- `KYCProfile` - Customer KYC
-- `DematAccount` - Demat accounts
-- `Transaction` - Transactions
-- `SystemConfig` - Configuration
-- `ApiKey` - API auth
-- `AuditLog` - Audit trail
-- `Portfolio` - Investments
+Run with coverage:
+```bash
+pytest --cov=.
+```
 
-## Technology Stack
+## Code Quality
 
-- Django & DRF
-- JWT Authentication
-- PostgreSQL Database
-- uWSGI Server
-- OpenTelemetry
-- Prometheus Metrics
+Format code:
+```bash
+black .
+isort .
+```
 
-## Security Features
+Lint code:
+```bash
+flake8
+```
 
-- ISO 27001 compliance
-- Secure key management
-- Comprehensive auditing
-- Role-based access
-- Request validation
-- Data sanitization
-- Distributed tracing
-- Real-time monitoring
+## Monitoring
 
-## Performance Optimizations
+- Prometheus metrics: http://localhost:8000/metrics
+- Health check: http://localhost:8000/health/
 
-- Connection pooling
-- Request sampling
-- Efficient caching
-- Load balancing ready
-- Distributed tracing
-- Resource monitoring
-- Optimized worker config
+## Deployment
+
+1. Set production environment variables
+2. Collect static files:
+```bash
+python manage.py collectstatic
+```
+
+3. Run migrations:
+```bash
+python manage.py migrate
+```
+
+4. Start the application with gunicorn:
+```bash
+gunicorn core.wsgi:application
+```
+
+## Project Structure
+
+```
+financial-mediator/
+├── api/                    # Core API functionality
+├── banking/               # Banking integration
+├── core/                  # Project configuration
+├── providers/             # Provider integration
+├── templates/             # HTML templates
+├── static/               # Static files
+├── tests/                # Test suite
+├── .env                  # Environment variables
+├── manage.py             # Django management script
+└── requirements.txt      # Project dependencies
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers.

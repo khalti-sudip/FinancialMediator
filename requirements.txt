@@ -1,0 +1,57 @@
+# Core Django Dependencies
+Django==5.0.0
+djangorestframework==3.14.0
+django-environ==0.11.2
+django-cors-headers==4.3.1
+django-filter==23.5
+django-prometheus==2.3.1
+django-redis==5.4.0
+
+# Authentication & Security
+djangorestframework-simplejwt==5.3.1
+django-guardian==2.4.0
+cryptography==41.0.7
+
+# Database & Caching
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# Task Queue & Background Jobs
+celery==5.3.6
+django-celery-beat==2.5.0
+django-celery-results==2.5.1
+
+# API Documentation
+drf-spectacular==0.27.0
+drf-spectacular-sidecar==2024.1.1
+
+# Monitoring & Logging
+sentry-sdk==1.39.1
+python-json-logger==2.0.7
+prometheus-client==0.19.0
+
+# Testing & Development
+pytest==7.4.3
+pytest-django==4.7.0
+pytest-cov==4.1.0
+black==23.12.1
+flake8==6.1.0
+isort==5.13.2
+
+# Web Server & Static Files
+gunicorn==21.2.0
+whitenoise==6.6.0
+
+# Utilities & Helpers
+python-dateutil==2.8.2
+requests==2.31.0
+pyyaml==6.0.1
+urllib3==2.1.0
+
+# WebSocket Support
+channels==4.0.0
+channels-redis==4.1.0
+
+# Production Dependencies
+supervisor==4.2.5
+newrelic==9.3.0

@@ -1,8 +1,8 @@
-
 from django.db import models
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
 
 class KYCProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -16,12 +16,14 @@ class KYCProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
 class DematAccount(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     boid = models.CharField(max_length=16, unique=True)
     status = models.CharField(max_length=20)
     expiry_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
+
 
 class Portfolio(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
