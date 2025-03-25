@@ -2,52 +2,43 @@
 
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Provider, ProviderEndpoint, ProviderCredential
+from .models import Provider, ProviderKey, ProviderWebhook
 
 
 @admin.register(Provider)
 class ProviderAdmin(admin.ModelAdmin):
     """Admin interface for Provider model."""
 
-    list_display = ["name", "code", "status", "rate_limit", "created_at", "updated_at"]
-    list_filter = ["status", "created_at", "updated_at"]
+    list_display = ["name", "code", "provider_type", "status", "created_at", "updated_at"]
+    list_filter = ["status", "provider_type", "created_at", "updated_at"]
     search_fields = ["name", "code"]
-    readonly_fields = ["created_at", "updated_at", "created_by"]
+    readonly_fields = ["created_at", "updated_at"]
     fieldsets = (
-        (None, {"fields": ("name", "code", "base_url", "status")}),
-        (_("API Configuration"), {"fields": ("api_key", "api_secret", "rate_limit")}),
-        (
-            _("Audit Information"),
-            {"fields": ("created_by", "created_at", "updated_at")},
-        ),
+        (None, {"fields": ("name", "code", "provider_type", "status")}),
+        (_("Configuration"), {"fields": ("base_url", "rate_limit", "webhook_url")}),
+        (_("Audit Information"), {"fields": ("created_at", "updated_at")}),
     )
 
-    def save_model(self, request, obj, form, change):
-        """Save model with created_by user."""
-        if not change:
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
+
+@admin.register(ProviderKey)
+class ProviderKeyAdmin(admin.ModelAdmin):
+    """Admin interface for ProviderKey model."""
+
+    list_display = ["provider", "key_id", "environment", "is_active", "created_at", "expires_at"]
+    list_filter = ["provider", "environment", "is_active"]
+    search_fields = ["key_id", "provider__name"]
+    readonly_fields = ["key_id", "created_at", "last_used_at"]
 
 
-@admin.register(ProviderEndpoint)
-class ProviderEndpointAdmin(admin.ModelAdmin):
-    """Admin interface for ProviderEndpoint model."""
+@admin.register(ProviderWebhook)
+class ProviderWebhookAdmin(admin.ModelAdmin):
+    """Admin interface for ProviderWebhook model."""
 
-    list_display = ["provider", "name", "path", "method", "is_active"]
-    list_filter = ["provider", "method", "is_active", "requires_auth"]
-    search_fields = ["name", "path", "provider__name"]
-    readonly_fields = ["created_at", "updated_at"]
-
-
-@admin.register(ProviderCredential)
-class ProviderCredentialAdmin(admin.ModelAdmin):
-    """Admin interface for ProviderCredential model."""
-
-    list_display = ["provider", "key", "is_encrypted", "created_at", "updated_at"]
-    list_filter = ["provider", "is_encrypted"]
-    search_fields = ["provider__name", "key"]
-    readonly_fields = ["created_at", "updated_at", "is_encrypted"]
+    list_display = ["provider", "event_type", "status", "created_at", "processed_at"]
+    list_filter = ["provider", "event_type", "status"]
+    search_fields = ["event_id", "provider__name", "event_type"]
+    readonly_fields = ["event_id", "created_at", "updated_at", "processed_at"]
     
     def has_change_permission(self, request, obj=None):
-        """Disable editing of existing credentials for security."""
-        return obj is None
+        # Webhooks should be immutable once created
+        return False

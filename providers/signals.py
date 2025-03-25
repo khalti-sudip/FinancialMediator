@@ -3,7 +3,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.core.cache import cache
-from .models import Provider, ProviderEndpoint, ProviderCredential
+from .models import Provider, ProviderKey, ProviderWebhook
 
 
 @receiver(post_save, sender=Provider)
@@ -20,13 +20,15 @@ def cleanup_provider_cache(sender, instance, **kwargs):
     cache.delete("providers:all")
 
 
-@receiver(post_save, sender=ProviderEndpoint)
-def invalidate_endpoint_cache(sender, instance, **kwargs):
-    """Invalidate endpoint-related cache when an endpoint is saved."""
-    cache.delete(f"provider:{instance.provider_id}:endpoints")
+@receiver(post_save, sender=ProviderKey)
+def invalidate_key_cache(sender, instance, **kwargs):
+    """Invalidate key-related cache when a key is saved."""
+    cache.delete(f"provider:{instance.provider_id}:keys")
+    cache.delete(f"provider_key:{instance.key_id}")
 
 
-@receiver(post_save, sender=ProviderCredential)
-def invalidate_credential_cache(sender, instance, **kwargs):
-    """Invalidate credential-related cache when a credential is saved."""
-    cache.delete(f"provider:{instance.provider_id}:credentials")
+@receiver(post_save, sender=ProviderWebhook)
+def invalidate_webhook_cache(sender, instance, **kwargs):
+    """Invalidate webhook-related cache when a webhook is saved."""
+    cache.delete(f"provider:{instance.provider_id}:webhooks")
+    cache.delete(f"provider_webhook:{instance.event_id}")
