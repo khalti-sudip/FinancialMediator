@@ -1,137 +1,250 @@
-"""Models for the providers app."""
+"""
+Provider Models Module.
+
+This module defines models for:
+- Payment providers
+- Provider configurations
+- API credentials
+- Service status tracking
+"""
 
 from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
-
-User = get_user_model()
-
+from django.conf import settings
+from django.core.validators import MinValueValidator
+from django.utils import timezone
+import uuid
 
 class Provider(models.Model):
-    """Model representing a financial service provider."""
-
-    name = models.CharField(_("Name"), max_length=100)
-    code = models.CharField(_("Code"), max_length=50, unique=True)
-    api_key = models.CharField(_("API Key"), max_length=100, unique=True)
-    api_secret = models.CharField(_("API Secret"), max_length=100)
-    base_url = models.URLField(_("Base URL"))
-    status = models.CharField(
-        _("Status"),
+    """Model for managing payment service providers."""
+    
+    # Provider identifiers
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=50, unique=True)
+    
+    # Provider type and capabilities
+    provider_type = models.CharField(
         max_length=20,
         choices=[
-            ("active", "Active"),
-            ("inactive", "Inactive"),
-            ("suspended", "Suspended"),
+            ("payment", "Payment Gateway"),
+            ("wallet", "Digital Wallet"),
+            ("bank", "Bank Integration"),
+            ("kyc", "KYC Provider"),
         ],
-        default="inactive",
     )
-    rate_limit = models.IntegerField(_("Rate Limit (requests/minute)"), default=60)
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="created_providers",
-        verbose_name=_("Created By"),
-    )
-
-    class Meta:
-        """Meta options for Provider model."""
-
-        verbose_name = _("Provider")
-        verbose_name_plural = _("Providers")
-        ordering = ["name"]
-
-    def __str__(self):
-        """Return string representation of the provider."""
-        return f"{self.name} ({self.code})"
-
-
-class ProviderEndpoint(models.Model):
-    """Model representing an endpoint for a provider."""
-
-    provider = models.ForeignKey(
-        Provider,
-        on_delete=models.CASCADE,
-        related_name="endpoints",
-        verbose_name=_("Provider"),
-    )
-    name = models.CharField(_("Name"), max_length=100)
-    path = models.CharField(_("Path"), max_length=200)
-    method = models.CharField(
-        _("HTTP Method"),
-        max_length=10,
+    supported_currencies = models.JSONField(default=list)
+    supported_countries = models.JSONField(default=list)
+    
+    # Status and availability
+    is_active = models.BooleanField(default=True)
+    status = models.CharField(
+        max_length=20,
         choices=[
-            ("GET", "GET"),
-            ("POST", "POST"),
-            ("PUT", "PUT"),
-            ("PATCH", "PATCH"),
-            ("DELETE", "DELETE"),
+            ("online", "Online"),
+            ("offline", "Offline"),
+            ("maintenance", "Maintenance"),
+            ("deprecated", "Deprecated"),
         ],
+        default="online",
     )
-    requires_auth = models.BooleanField(_("Requires Authentication"), default=True)
-    is_active = models.BooleanField(_("Is Active"), default=True)
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
-
+    
+    # API configuration
+    api_base_url = models.URLField()
+    api_version = models.CharField(max_length=10)
+    webhook_url = models.URLField(blank=True)
+    webhook_secret = models.CharField(max_length=100, blank=True)
+    
+    # Rate limiting
+    rate_limit = models.IntegerField(
+        default=100,
+        validators=[MinValueValidator(1)],
+        help_text="Requests per minute",
+    )
+    concurrent_requests = models.IntegerField(
+        default=10,
+        validators=[MinValueValidator(1)],
+    )
+    
+    # Credentials (encrypted)
+    credentials = models.JSONField(
+        default=dict,
+        help_text="Encrypted API credentials",
+    )
+    
+    # Configuration
+    settings = models.JSONField(
+        default=dict,
+        help_text="Provider-specific settings",
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_check_at = models.DateTimeField(null=True, blank=True)
+    
     class Meta:
-        """Meta options for ProviderEndpoint model."""
-
-        verbose_name = _("Provider Endpoint")
-        verbose_name_plural = _("Provider Endpoints")
-        unique_together = ["provider", "path", "method"]
-        ordering = ["provider", "name"]
-
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["code"]),
+            models.Index(fields=["provider_type"]),
+            models.Index(fields=["status"]),
+        ]
+    
     def __str__(self):
-        """Return string representation of the endpoint."""
-        return f"{self.provider.name} - {self.name} ({self.method})"
+        return f"{self.name} ({self.provider_type})"
+    
+    def check_status(self):
+        """Check provider API status."""
+        try:
+            # Initialize client
+            client = self.get_client()
+            
+            # Perform health check
+            is_healthy = client.check_health()
+            
+            # Update status
+            self.status = "online" if is_healthy else "offline"
+            self.last_check_at = timezone.now()
+            self.save(update_fields=["status", "last_check_at"])
+            
+            return is_healthy
+            
+        except Exception as e:
+            self.status = "offline"
+            self.last_check_at = timezone.now()
+            self.save(update_fields=["status", "last_check_at"])
+            return False
 
-
-class ProviderCredential(models.Model):
-    """Model for storing provider-specific credentials."""
-
+class ProviderKey(models.Model):
+    """Model for managing provider API keys."""
+    
+    # Key details
+    key_id = models.UUIDField(default=uuid.uuid4, unique=True)
     provider = models.ForeignKey(
         Provider,
         on_delete=models.CASCADE,
-        related_name="credentials",
-        verbose_name=_("Provider"),
+        related_name="api_keys",
     )
-    key = models.CharField(_("Key"), max_length=100)
-    value = models.CharField(_("Value"), max_length=500)
-    is_encrypted = models.BooleanField(_("Is Encrypted"), default=False)
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
-
+    
+    # Key status
+    is_active = models.BooleanField(default=True)
+    environment = models.CharField(
+        max_length=20,
+        choices=[
+            ("sandbox", "Sandbox"),
+            ("production", "Production"),
+        ],
+    )
+    
+    # Access control
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="provider_keys",
+    )
+    
+    # Usage limits
+    daily_limit = models.IntegerField(
+        default=1000,
+        validators=[MinValueValidator(1)],
+    )
+    monthly_limit = models.IntegerField(
+        default=10000,
+        validators=[MinValueValidator(1)],
+    )
+    
+    # Key data (encrypted)
+    key_data = models.JSONField(
+        default=dict,
+        help_text="Encrypted key data",
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    
     class Meta:
-        """Meta options for ProviderCredential model."""
-
-        verbose_name = _("Provider Credential")
-        verbose_name_plural = _("Provider Credentials")
-        unique_together = ["provider", "key"]
-        ordering = ["provider", "key"]
-
+        ordering = ["-created_at"]
+        unique_together = [["provider", "user", "environment"]]
+    
     def __str__(self):
-        """Return string representation of the credential."""
-        return f"{self.provider.name} - {self.key}"
+        return f"{self.provider.name} - {self.environment}"
+    
+    def is_valid(self):
+        """Check if key is valid and not expired."""
+        if not self.is_active:
+            return False
+            
+        if self.expires_at and timezone.now() >= self.expires_at:
+            return False
+            
+        return True
 
-    def save(self, *args, **kwargs):
-        """Override save to handle encryption."""
-        if not self.is_encrypted and self.value:
-            from django.conf import settings
-            from cryptography.fernet import Fernet
-
-            f = Fernet(settings.ENCRYPTION_KEY.encode())
-            self.value = f.encrypt(self.value.encode()).decode()
-            self.is_encrypted = True
-        super().save(*args, **kwargs)
-
-    def get_decrypted_value(self):
-        """Get the decrypted value of the credential."""
-        if self.is_encrypted and self.value:
-            from django.conf import settings
-            from cryptography.fernet import Fernet
-
-            f = Fernet(settings.ENCRYPTION_KEY.encode())
-            return f.decrypt(self.value.encode()).decode()
-        return self.value
+class ProviderWebhook(models.Model):
+    """Model for tracking provider webhook events."""
+    
+    # Event identifiers
+    event_id = models.UUIDField(default=uuid.uuid4, unique=True)
+    provider = models.ForeignKey(
+        Provider,
+        on_delete=models.CASCADE,
+        related_name="webhooks",
+    )
+    
+    # Event details
+    event_type = models.CharField(max_length=100)
+    event_data = models.JSONField()
+    
+    # Processing status
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pending"),
+            ("processing", "Processing"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ],
+        default="pending",
+    )
+    
+    # Error tracking
+    error_message = models.TextField(blank=True)
+    retry_count = models.IntegerField(default=0)
+    
+    # Request details
+    ip_address = models.GenericIPAddressField()
+    headers = models.JSONField()
+    signature = models.CharField(max_length=255)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["provider", "event_type"]),
+            models.Index(fields=["status"]),
+        ]
+    
+    def __str__(self):
+        return f"{self.provider.name} - {self.event_type}"
+    
+    def verify_signature(self):
+        """Verify webhook signature."""
+        try:
+            # Get provider secret
+            secret = self.provider.webhook_secret
+            
+            # Calculate expected signature
+            expected = calculate_signature(
+                self.event_data,
+                secret
+            )
+            
+            # Compare signatures
+            return self.signature == expected
+            
+        except Exception:
+            return False
