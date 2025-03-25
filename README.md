@@ -4,14 +4,16 @@ A Django REST Framework-based API that mediates financial transactions between v
 
 ## Features
 
-- **Provider Integration**: Seamless integration with multiple financial service providers
-- **Transaction Management**: Handle various types of financial transactions
-- **Authentication & Security**: JWT-based authentication and robust security measures
-- **Caching & Performance**: Redis-based caching for optimal performance
-- **Task Queue**: Celery-based background task processing
-- **Monitoring**: Prometheus metrics and Sentry error tracking
-- **API Documentation**: OpenAPI/Swagger documentation
-- **WebSocket Support**: Real-time transaction updates
+- **Multi-Provider Integration**: Seamless integration with multiple payment providers, wallet services, banking systems, and KYC verification services
+- **Transaction Management**: Comprehensive handling of deposits, withdrawals, payments, refunds, and transfers
+- **Payment Method Management**: Support for adding, verifying, and managing various payment methods
+- **Webhook Processing**: Automated handling of provider webhooks with retry logic and signature verification
+- **Authentication & Security**: JWT-based authentication with robust request validation and error handling
+- **Caching & Performance**: Redis-based caching for optimal performance and reduced API calls
+- **Task Queue**: Celery-based background task processing for asynchronous operations
+- **Monitoring**: Prometheus metrics, health checks, and Sentry error tracking
+- **API Documentation**: Comprehensive OpenAPI/Swagger documentation with usage examples
+- **WebSocket Support**: Real-time transaction updates and notifications
 
 ## Tech Stack
 
@@ -21,7 +23,34 @@ A Django REST Framework-based API that mediates financial transactions between v
 - **Task Queue**: Celery with Redis broker
 - **Documentation**: drf-spectacular
 - **Monitoring**: Prometheus, Sentry
-- **Testing**: pytest
+- **Testing**: pytest with comprehensive test coverage
+
+## Modules
+
+### Core
+- Configuration, settings, and base functionality
+- Celery setup for background tasks
+- Error handling and middleware
+
+### API
+- Authentication and authorization
+- Request tracking and rate limiting
+- Health checks and system monitoring
+- Common utilities and serializers
+
+### Providers
+- Payment provider integration (Stripe, PayPal, etc.)
+- Wallet provider integration (electronic wallets)
+- Banking provider integration
+- KYC verification integration
+- Webhook handling and signature verification
+- API key management and security
+
+### Banking
+- Account management (create, verify, balance operations)
+- Transaction processing (deposits, withdrawals, transfers)
+- Payment processing and method management
+- Statement generation and reporting
 
 ## Prerequisites
 
@@ -33,8 +62,8 @@ A Django REST Framework-based API that mediates financial transactions between v
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/financial-mediator.git
-cd financial-mediator
+git clone https://github.com/khalti-sudip/FinancialMediator.git
+cd FinancialMediator
 ```
 
 2. Create and activate a virtual environment:
@@ -93,6 +122,47 @@ python manage.py runserver
 - ReDoc: http://localhost:8000/api/redoc/
 - OpenAPI Schema: http://localhost:8000/api/schema/
 
+### API Endpoints
+
+#### Providers
+- `GET /api/v1/providers/` - List all providers
+- `POST /api/v1/providers/` - Create a new provider
+- `GET /api/v1/providers/{id}/` - Get provider details
+- `POST /api/v1/providers/{id}/check_status/` - Check provider status
+- `POST /api/v1/providers/{id}/update_status/` - Update provider status
+- `GET /api/v1/providers/{id}/statistics/` - Get provider statistics
+
+#### Provider Keys
+- `GET /api/v1/provider-keys/` - List all API keys
+- `POST /api/v1/provider-keys/` - Create a new API key
+- `POST /api/v1/provider-keys/{id}/deactivate/` - Deactivate an API key
+- `GET /api/v1/provider-keys/{id}/usage/` - Get API key usage
+
+#### Provider Webhooks
+- `GET /api/v1/provider-webhooks/` - List all webhooks
+- `POST /api/v1/provider-webhooks/` - Create a new webhook event
+- `POST /api/v1/provider-webhooks/{id}/retry/` - Retry processing a webhook
+- `POST /api/v1/provider-webhooks/{id}/cancel/` - Cancel a pending webhook
+- `GET /api/v1/provider-webhooks/summary/` - Get webhook processing summary
+
+#### Banking
+- `GET /api/v1/accounts/` - List all accounts
+- `POST /api/v1/accounts/` - Create a new account
+- `GET /api/v1/accounts/{id}/balance/` - Get account balance
+- `POST /api/v1/accounts/{id}/deposit/` - Deposit funds
+- `POST /api/v1/accounts/{id}/withdraw/` - Withdraw funds
+- `GET /api/v1/accounts/{id}/transactions/` - Get transaction history
+- `GET /api/v1/accounts/{id}/statement/` - Get account statement
+
+#### Payments
+- `GET /api/v1/payment-methods/` - List all payment methods
+- `POST /api/v1/payment-methods/` - Create a new payment method
+- `POST /api/v1/payment-methods/{id}/verify/` - Verify a payment method
+- `POST /api/v1/payment-methods/{id}/deactivate/` - Deactivate a payment method
+- `POST /api/v1/payments/process/` - Process a payment
+- `POST /api/v1/payments/cancel/` - Cancel a payment
+- `POST /api/v1/payments/refund/` - Refund a payment
+
 ## Testing
 
 Run the test suite:
@@ -144,14 +214,42 @@ gunicorn core.wsgi:application
 ## Project Structure
 
 ```
-financial-mediator/
-├── api/                    # Core API functionality
-├── banking/               # Banking integration
-├── core/                  # Project configuration
-├── providers/             # Provider integration
-├── templates/             # HTML templates
-├── static/               # Static files
+FinancialMediator/
+├── api/                  # Core API functionality
+│   ├── middleware/       # Custom middleware
+│   ├── views/            # API views
+│   ├── models.py         # API models
+│   ├── serializers.py    # API serializers
+│   ├── tasks.py          # Background tasks
+│   └── error_handlers.py # Error handling
+├── banking/              # Banking integration
+│   ├── views/            # Banking views
+│   ├── models.py         # Banking models
+│   ├── serializers.py    # Banking serializers
+│   ├── services.py       # Banking services
+│   └── tasks.py          # Banking tasks
+├── core/                 # Project configuration
+│   ├── settings.py       # Django settings
+│   ├── urls.py           # URL routing
+│   ├── celery.py         # Celery configuration
+│   ├── wsgi.py           # WSGI configuration
+│   └── asgi.py           # ASGI configuration
+├── providers/            # Provider integration
+│   ├── views/            # Provider views
+│   ├── handlers/         # Webhook handlers
+│   ├── models.py         # Provider models
+│   ├── serializers.py    # Provider serializers
+│   ├── tasks.py          # Provider tasks
+│   └── utils.py          # Provider utilities
+├── docs/                 # Documentation
+│   ├── api/              # API docs
+│   └── deployment/       # Deployment guides
 ├── tests/                # Test suite
+│   ├── api/              # API tests
+│   ├── banking/          # Banking tests
+│   └── providers/        # Provider tests
+├── templates/            # HTML templates
+├── static/               # Static files
 ├── .env                  # Environment variables
 ├── manage.py             # Django management script
 └── requirements.txt      # Project dependencies
