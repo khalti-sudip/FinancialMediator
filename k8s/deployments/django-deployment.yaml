@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: financialmediator
-        image: financialmediator:latest
+        image: localhost:5000/financialmediator:latest
         ports:
         - containerPort: 8000
         envFrom:
