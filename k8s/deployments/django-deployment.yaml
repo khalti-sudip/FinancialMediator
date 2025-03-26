@@ -17,6 +17,7 @@ spec:
       containers:
       - name: financialmediator
         image: financialmediator:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
         envFrom:
@@ -57,5 +58,3 @@ spec:
         emptyDir: {}
       - name: logs-volume
         emptyDir: {}
-      imagePullSecrets:
-      - name: regcred
