@@ -17,7 +17,7 @@ spec:
       containers:
       - name: financialmediator
         image: financialmediator:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never  # Use local image
         command: ["/bin/sh"]
         args: ["-c", "uwsgi --ini /app/uwsgi.ini"]
         ports:
@@ -39,9 +39,6 @@ spec:
           value: "localhost,127.0.0.1,nabilwealth.com"
         - name: CORS_ALLOWED_ORIGINS
           value: "http://localhost:8000"
-        envFrom:
-        - secretRef:
-            name: financialmediator-secrets
         volumeMounts:
         - name: static-volume
           mountPath: /app/static
