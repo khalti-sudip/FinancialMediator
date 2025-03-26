@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_redis',
     'rest_framework_simplejwt',
-    'django_guardian',
+    'guardian',
     
     # Project apps
     'api',
@@ -67,7 +67,12 @@ INSTALLED_APPS = [
     'providers',
 ]
 
+# ----------------
+# Middleware
+# ----------------
+
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -77,9 +82,18 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
+# ----------------
+# URL Configuration
+# ----------------
+
 ROOT_URLCONF = 'banking_project.urls'
+
+# ----------------
+# Template Configuration
+# ----------------
 
 TEMPLATES = [
     {
@@ -97,6 +111,10 @@ TEMPLATES = [
     },
 ]
 
+# ----------------
+# WSGI Configuration
+# ----------------
+
 WSGI_APPLICATION = 'banking_project.wsgi.application'
 
 # ----------------
@@ -110,7 +128,7 @@ DATABASES = {
     }
 }
 
-# -----------
+#  -----------
 # Caching
 # -----------
 
@@ -124,7 +142,7 @@ CACHES = {
     }
 }
 
-# -----------
+#  -----------
 # Celery
 # -----------
 
@@ -212,6 +230,7 @@ SIMPLE_JWT = {
     
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
     
     'JTI_CLAIM': 'jti',
     
@@ -219,18 +238,6 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
-
-# ----------------
-# Email Configuration
-# ----------------
-
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@example.com')
 
 # ----------------
 # Logging
