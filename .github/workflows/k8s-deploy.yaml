@@ -12,20 +12,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Configure Kubernetes
-      run: |
-        kubectl config set-context default
-        kubectl config use-context default
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
     
-    - name: Deploy to Kubernetes
+    - name: Install dependencies
       run: |
-        kubectl apply -f k8s/deployments/django-deployment.yaml
-        kubectl apply -f k8s/services/django-service.yaml
-        kubectl apply -f k8s/secrets/secrets.yaml
-        kubectl apply -f k8s/persistence/pvc.yaml
-        kubectl apply -f k8s/hpa/hpa.yaml
+        pip install -r requirements.txt
     
-    - name: Wait for deployment
+    - name: Run deployment script
       run: |
-        kubectl rollout status deployment/financialmediator
-        kubectl get pods
+        python scripts/deploy.py

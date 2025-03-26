@@ -49,3 +49,6 @@ django-debug-toolbar==4.2.0  # For debugging in development
 
 # Production
 gunicorn==21.2.0  # WSGI HTTP Server for production
+
+# Kubernetes Deployment
+kubernetes==28.1.0  # For Python deployment script
