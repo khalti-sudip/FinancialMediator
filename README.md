@@ -1,6 +1,6 @@
 # FinancialMediator
 
-A Django-based financial management system with rate limiting, health monitoring, and containerized deployment.
+A Django-based financial management system with rate limiting, health monitoring, and Kubernetes deployment.
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ FinancialMediator is a Django application that provides financial management cap
 
 - Rate limiting middleware for API protection
 - Comprehensive health monitoring system
-- Containerized deployment with Kubernetes
+- Kubernetes deployment
 - PostgreSQL database integration
 - Redis for caching and Celery task queue
 - REST API with Django REST Framework
@@ -19,7 +19,6 @@ FinancialMediator is a Django application that provides financial management cap
 - PostgreSQL 14+
 - Redis 6+
 - Kubernetes (tested with Minikube)
-- Docker
 
 ## Local Development Setup
 
@@ -54,7 +53,6 @@ The application will be available at http://localhost:8000
 
 - Minikube
 - kubectl
-- Docker
 
 ### Setup Instructions
 
@@ -65,13 +63,11 @@ The application will be available at http://localhost:8000
 
 2. Apply the Kubernetes configuration:
    ```bash
-   kubectl apply -f k8s/configmaps/app-config.yaml
-   kubectl apply -f k8s/configmaps/app-files.yaml
+   kubectl apply -f k8s/secrets/secrets.yaml
    kubectl apply -f k8s/deployments/django-deployment.yaml
-   kubectl apply -f k8s/deployments/celery-deployment.yaml
-   kubectl apply -f k8s/deployments/postgres-deployment.yaml
-   kubectl apply -f k8s/deployments/redis-deployment.yaml
    kubectl apply -f k8s/services/django-service.yaml
+   kubectl apply -f k8s/persistence/pvc.yaml
+   kubectl apply -f k8s/hpa/hpa.yaml
    ```
 
 3. Verify the deployment:
@@ -99,11 +95,13 @@ The API documentation is automatically generated using drf-spectacular and is av
 - ReDoc: `/api/schema/redoc/`
 
 ## Security Features
-
-- Rate limiting middleware for API protection
-- CORS configuration for secure cross-origin requests
-- Environment-based configuration management
-- Secure session and authentication handling
+- Rate limiting for API endpoints
+- JWT authentication
+- CORS protection
+- Secure session handling
+- Environment-based configuration
+- Health monitoring and alerts
+- Logging and error tracking
 
 ## Contributing
 
