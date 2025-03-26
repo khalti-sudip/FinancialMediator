@@ -30,4 +30,4 @@ spec:
     targetPort: 8000
     protocol: TCP
     name: http
-  type: LoadBalancer
+  type: NodePort
