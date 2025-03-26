@@ -14,6 +14,12 @@ jobs:
       matrix:
         python-version: [3.11]
 
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -32,6 +38,11 @@ jobs:
         echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
         echo "CELERY_BROKER_URL=redis://localhost:6379/0" >> $GITHUB_ENV
         echo "CELERY_RESULT_BACKEND=redis://localhost:6379/0" >> $GITHUB_ENV
+    - name: Wait for Redis
+      run: |
+        while ! nc -z localhost 6379; do
+            sleep 1
+        done
     - name: Run Tests with Coverage
       run: |
         pytest --cov=banking_api --cov=providers --cov=models --cov-report=term-missing --cov-fail-under=80
