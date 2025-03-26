@@ -7,10 +7,10 @@ django-filter==23.5
 django-prometheus==2.3.1
 django-redis==5.4.0
 whitenoise==6.6.0  # For serving static files
+django-guardian==2.4.0  # For object-level permissions
 
 # Authentication & Security
 djangorestframework-simplejwt==5.3.1
-django-guardian==2.4.0
 cryptography==41.0.7
 django-ratelimit==4.1.0  # For API rate limiting protection
 
