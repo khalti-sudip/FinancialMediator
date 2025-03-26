@@ -16,10 +16,9 @@ spec:
     spec:
       containers:
       - name: financialmediator
-        image: financialmediator:latest
-        imagePullPolicy: Never  # Use local image
+        image: python:3.11-slim
         command: ["/bin/sh"]
-        args: ["-c", "uwsgi --ini /app/uwsgi.ini"]
+        args: ["-c", "apt-get update && apt-get install -y --no-install-recommends python3-pip python3-dev build-essential gcc postgresql-client libpq-dev && pip3 install --upgrade pip && pip3 install --no-cache-dir -r /app/requirements.txt && uwsgi --ini /app/uwsgi.ini"]
         ports:
         - containerPort: 8000
         env:
@@ -40,12 +39,8 @@ spec:
         - name: CORS_ALLOWED_ORIGINS
           value: "http://localhost:8000"
         volumeMounts:
-        - name: static-volume
-          mountPath: /app/static
-        - name: media-volume
-          mountPath: /app/media
-        - name: logs-volume
-          mountPath: /app/logs
+        - name: app-volume
+          mountPath: /app
         resources:
           requests:
             memory: "256Mi"
@@ -68,9 +63,5 @@ spec:
           periodSeconds: 5
           failureThreshold: 3
       volumes:
-      - name: static-volume
-        emptyDir: {}
-      - name: media-volume
-        emptyDir: {}
-      - name: logs-volume
+      - name: app-volume
         emptyDir: {}

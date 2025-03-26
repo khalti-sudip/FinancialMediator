@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  requirements.txt: |
+    Django>=4.2.0
+    psycopg2-binary>=2.9.0
+    redis>=4.5.0
+    celery>=5.3.0
+    uwsgi>=2.0.20
+    djangorestframework>=3.14.0
+    django-cors-headers>=4.2.0
+    python-dotenv>=1.0.0
+    django-environ>=0.10.0
+    django-celery-beat>=2.5.0
+    django-celery-results>=2.4.0
+    django-health-check>=3.19.0
+    django-redis>=5.3.0
+    django-filter>=23.2
+    drf-spectacular>=0.27.0
+    drf-yasg>=1.21.0
+    python-jose[cryptography]>=3.3.0
+    django-rest-auth>=0.9.5
+    django-allauth>=0.53.0
+    social-auth-app-django>=5.2.0
+    django-cors-headers>=4.2.0
+    django-health-check>=3.19.0
+    django-redis>=5.3.0
+    django-filter>=23.2
+    drf-spectacular>=0.27.0
+    drf-yasg>=1.21.0
+    python-jose[cryptography]>=3.3.0
+    django-rest-auth>=0.9.5
+    django-allauth>=0.53.0
+    social-auth-app-django>=5.2.0
+  uwsgi.ini: |
+    [uwsgi]
+    http = 0.0.0.0:8000
+    module = banking_project.wsgi:application
+    master = true
+    processes = 6
+    threads = 2
+    vacuum = true
+    die-on-term = true
+    enable-threads = true
+    max-requests = 10000
+    buffer-size = 32768
+    harakiri = 120
+    lazy-apps = true
+    thunder-lock = true
+    post-buffering = 8192
+    stats = 127.0.0.1:9191
+
+    # Logging
+    log-4xx = true
+    log-5xx = true
+    disable-logging = true
+    log-slow = true
+    log-slow-timeout = 30
+
+    # Memory and performance optimizations
+    reload-on-rss = 2048
+    max-worker-lifetime = 3600
+    reload-mercy = 10
+    worker-reload-mercy = 10
+    memory-report = true
+    cheaper-algo = spare
+    cheaper = 2
+    cheaper-initial = 4
+    cheaper-step = 1
