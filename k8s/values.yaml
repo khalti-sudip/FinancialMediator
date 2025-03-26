@@ -49,9 +49,9 @@ healthCheck:
 
 # Secrets (These should be encrypted in a real environment)
 secrets:
-  databasePassword: 764683262616614816
-  djangoSecretKey: 26534243741749116021192025995
+  databasePassword: "your-secure-database-password"
+  djangoSecretKey: "your-secure-django-secret-key"
   emailUser: "your-email@example.com"
-  emailPassword: 6011289827614
-  awsAccessKey: 3025286925090
-  awsSecretKey: 18079260901844811068
+  emailPassword: "your-secure-email-password"
+  awsAccessKey: "your-aws-access-key"
+  awsSecretKey: "your-aws-secret-key"

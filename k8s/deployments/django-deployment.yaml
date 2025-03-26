@@ -31,9 +31,6 @@ spec:
           mountPath: /app/banking_project
         - name: app-volume
           mountPath: /app/data
-        - name: settings-volume
-          mountPath: /app/banking_project/settings.py
-          subPath: settings.py
         resources:
           requests:
             memory: "256Mi"
@@ -64,9 +61,3 @@ spec:
           name: app-files
       - name: app-volume
         emptyDir: {}
-      - name: settings-volume
-        configMap:
-          name: app-files
-          items:
-          - key: settings.py
-            path: settings.py
