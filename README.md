@@ -15,6 +15,7 @@ FinancialMediator is a Django application that provides financial management cap
 - Provider integration system
 - Core utilities and helper functions
 - Modular architecture for multiple financial institutions and providers
+- Independent KYC service for verification
 
 ## Modular Architecture
 
@@ -33,7 +34,17 @@ FinancialMediator is designed as a modular system with clear separation between:
    - Digital Wallet Services
    - Each provider can handle requests from multiple institutions
 
-3. **Core Components**
+3. **KYC Service**
+   - Independent verification service
+   - Supports multiple verification types:
+     - Document verification
+     - Face verification
+     - Address verification
+     - Background check
+   - Provider-specific verification requirements
+   - Status tracking and reporting
+
+4. **Core Components**
    - Provider Registry
    - Request Routing
    - Response Processing
@@ -131,6 +142,34 @@ class MyInstitution(BaseFinancialInstitution):
 registry.register_institution('my_institution', MyInstitution)
 ```
 
+## Adding New KYC Providers
+
+To add a new KYC provider:
+
+1. Create a new provider class that inherits from `BaseKYCProvider`
+2. Create a client class that inherits from `BaseKYCClient`
+3. Register both in the KYC registry
+
+Example:
+```python
+from services.kyc.providers.base import BaseKYCProvider, BaseKYCClient
+from services.kyc.utils.registry import kyc_registry
+
+class MyKYCProvider(BaseKYCProvider):
+    def initialize(self, config):
+        # Implementation
+        pass
+    
+    def authenticate(self):
+        # Implementation
+        pass
+    
+    # Implement other required methods
+
+# Register the provider
+kyc_registry.register_provider('my_kyc', MyKYCProvider)
+```
+
 ## Project Structure
 
 ```
@@ -144,6 +183,11 @@ registry.register_institution('my_institution', MyInstitution)
 │   ├── financial_institutions/  # Financial institution implementations
 │   ├── financial_providers/    # Financial provider implementations
 │   └── utils/          # Utility functions
+├── services/           # Independent services
+│   └── kyc/           # KYC verification service
+│       ├── models/    # KYC models
+│       ├── providers/ # KYC provider implementations
+│       └── utils/     # KYC utility functions
 ├── scripts/             # Deployment and utility scripts
 ├── tests/              # Test suite
 ├── utils/              # Utility functions
@@ -164,6 +208,7 @@ registry.register_institution('my_institution', MyInstitution)
 - Health monitoring and alerts
 - Logging and error tracking
 - Provider-specific security measures
+- KYC-specific security controls
 
 ## Contributing
 
