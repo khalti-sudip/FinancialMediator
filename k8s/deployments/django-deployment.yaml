@@ -18,7 +18,7 @@ spec:
       - name: financialmediator
         image: python:3.11-slim
         command: ["/bin/sh"]
-        args: ["-c", "apt-get update && apt-get install -y --no-install-recommends python3-pip python3-dev build-essential gcc postgresql-client libpq-dev && pip3 install --upgrade pip && pip3 install --no-cache-dir -r /app/requirements.txt && uwsgi --ini /app/uwsgi.ini"]
+        args: ["-c", "apt-get update && apt-get install -y --no-install-recommends python3-pip python3-dev build-essential gcc postgresql-client libpq-dev && pip3 install --upgrade pip && pip3 install --no-cache-dir -r /app/requirements.txt && python /app/manage.py migrate && uwsgi --ini /app/uwsgi.ini"]
         ports:
         - containerPort: 8000
         env:
@@ -39,8 +39,15 @@ spec:
         - name: CORS_ALLOWED_ORIGINS
           value: "http://localhost:8000"
         volumeMounts:
-        - name: app-volume
+        - name: app-config
           mountPath: /app
+        - name: app-files
+          mountPath: /app/banking_project
+        - name: app-volume
+          mountPath: /app/data
+        - name: settings-volume
+          mountPath: /app/banking_project/settings.py
+          subPath: settings.py
         resources:
           requests:
             memory: "256Mi"
@@ -63,5 +70,31 @@ spec:
           periodSeconds: 5
           failureThreshold: 3
       volumes:
+      - name: app-config
+        configMap:
+          name: app-config
+          items:
+          - key: requirements.txt
+            path: requirements.txt
+          - key: uwsgi.ini
+            path: uwsgi.ini
+      - name: app-files
+        configMap:
+          name: app-files
+          items:
+          - key: manage.py
+            path: manage.py
+          - key: wsgi.py
+            path: wsgi.py
+          - key: urls.py
+            path: urls.py
+          - key: settings.py
+            path: settings.py
       - name: app-volume
         emptyDir: {}
+      - name: settings-volume
+        configMap:
+          name: app-files
+          items:
+          - key: settings.py
+            path: settings.py
