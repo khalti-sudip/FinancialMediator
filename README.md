@@ -14,6 +14,31 @@ FinancialMediator is a Django application that provides financial management cap
 - REST API with Django REST Framework
 - Provider integration system
 - Core utilities and helper functions
+- Modular architecture for multiple financial institutions and providers
+
+## Modular Architecture
+
+FinancialMediator is designed as a modular system with clear separation between:
+
+1. **Financial Institutions**
+   - Banks
+   - Digital Wallets
+   - Other financial service providers
+   - Each institution can send requests to multiple providers
+
+2. **Financial Providers**
+   - Payment Gateways
+   - KYC Services
+   - Bank Integration Services
+   - Digital Wallet Services
+   - Each provider can handle requests from multiple institutions
+
+3. **Core Components**
+   - Provider Registry
+   - Request Routing
+   - Response Processing
+   - Health Monitoring
+   - Rate Limiting
 
 ## Prerequisites
 
@@ -50,50 +75,61 @@ FinancialMediator is a Django application that provides financial management cap
 
 The application will be available at http://localhost:8000
 
-## Kubernetes Deployment
+## Adding New Providers
 
-### Prerequisites
+To add a new provider:
 
-- Minikube
-- kubectl
-- Python 3.11+
+1. Create a new provider class that inherits from `BaseProvider`
+2. Implement all required abstract methods
+3. Register the provider in the registry
 
-### Setup Instructions
+Example:
+```python
+from providers.base.provider import BaseProvider
+from providers.utils.registry import registry
 
-1. Start Minikube:
-   ```bash
-   minikube start
-   ```
+class MyProvider(BaseProvider):
+    def initialize(self, config):
+        # Implementation
+        pass
+    
+    def authenticate(self):
+        # Implementation
+        pass
+    
+    # Implement other required methods
 
-2. Run the deployment script:
-   ```bash
-   python scripts/deploy.py
-   ```
+# Register the provider
+registry.register_provider('my_provider', MyProvider)
+```
 
-3. Verify the deployment:
-   ```bash
-   kubectl get pods
-   kubectl get services
-   ```
+## Adding New Financial Institutions
 
-The application will be available at the Kubernetes service URL
+To add a new financial institution:
 
-## Health Monitoring
+1. Create a new institution class that inherits from `BaseFinancialInstitution`
+2. Implement all required abstract methods
+3. Register the institution in the registry
 
-The application includes a comprehensive health monitoring system that checks:
-- Database connectivity
-- Redis status
-- Celery worker status
-- Cache health
-- Provider integration status
+Example:
+```python
+from providers.base.provider import BaseFinancialInstitution
+from providers.utils.registry import registry
 
-Access the health check endpoint at `/health/`
+class MyInstitution(BaseFinancialInstitution):
+    def get_institution_id(self):
+        # Implementation
+        pass
+    
+    def validate_credentials(self):
+        # Implementation
+        pass
+    
+    # Implement other required methods
 
-## API Documentation
-
-The API documentation is automatically generated using drf-spectacular and is available at:
-- Swagger UI: `/api/schema/swagger-ui/`
-- ReDoc: `/api/schema/redoc/`
+# Register the institution
+registry.register_institution('my_institution', MyInstitution)
+```
 
 ## Project Structure
 
@@ -103,7 +139,11 @@ The API documentation is automatically generated using drf-spectacular and is av
 ├── banking_project/      # Django project settings
 ├── core/                 # Core utilities and helpers
 ├── k8s/                 # Kubernetes configuration
-├── providers/           # External service providers
+├── providers/           # Provider integration system
+│   ├── base/           # Base provider interfaces
+│   ├── financial_institutions/  # Financial institution implementations
+│   ├── financial_providers/    # Financial provider implementations
+│   └── utils/          # Utility functions
 ├── scripts/             # Deployment and utility scripts
 ├── tests/              # Test suite
 ├── utils/              # Utility functions
