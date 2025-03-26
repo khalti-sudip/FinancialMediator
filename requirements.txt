@@ -49,4 +49,3 @@ django-debug-toolbar==4.2.0  # For debugging in development
 
 # Production
 gunicorn==21.2.0  # WSGI HTTP Server for production
-dj-database-url==2.1.0  # For database configuration via URLs

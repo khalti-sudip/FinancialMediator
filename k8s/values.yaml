@@ -25,13 +25,6 @@ email:
   user: "{{ .Values.secrets.emailUser }}"
   password: "{{ .Values.secrets.emailPassword }}"
 
-# AWS Configuration
-aws:
-  accessKey: "{{ .Values.secrets.awsAccessKey }}"
-  secretKey: "{{ .Values.secrets.awsSecretKey }}"
-  bucketName: "financialmediator-storage"
-  region: "us-east-1"
-
 # Rate Limiting Configuration
 rateLimit:
   window: "60"
@@ -53,5 +46,3 @@ secrets:
   djangoSecretKey: "your-secure-django-secret-key"
   emailUser: "your-email@example.com"
   emailPassword: "your-secure-email-password"
-  awsAccessKey: "your-aws-access-key"
-  awsSecretKey: "your-aws-secret-key"
