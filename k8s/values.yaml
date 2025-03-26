@@ -1,0 +1,57 @@
+# Database Configuration
+database:
+  user: "financialmediator"
+  password: "{{ .Values.secrets.databasePassword }}"
+  host: "postgres"
+  name: "financialmediator"
+
+# Redis Configuration
+redis:
+  host: "redis"
+
+# Django Configuration
+django:
+  secretKey: "{{ .Values.secrets.djangoSecretKey }}"
+  debug: "False"
+  allowedHosts: "nabilwealth.com,localhost,127.0.0.1"
+  corsOrigins: "https://nabilwealth.com,http://localhost:8000"
+
+# Email Configuration
+email:
+  backend: "django.core.mail.backends.smtp.EmailBackend"
+  host: "smtp.gmail.com"
+  port: "587"
+  useTLS: "True"
+  user: "{{ .Values.secrets.emailUser }}"
+  password: "{{ .Values.secrets.emailPassword }}"
+
+# AWS Configuration
+aws:
+  accessKey: "{{ .Values.secrets.awsAccessKey }}"
+  secretKey: "{{ .Values.secrets.awsSecretKey }}"
+  bucketName: "financialmediator-storage"
+  region: "us-east-1"
+
+# Rate Limiting Configuration
+rateLimit:
+  window: "60"
+  requests: "100"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "/var/log/financialmediator/app.log"
+
+# Health Check Configuration
+healthCheck:
+  interval: "30"
+  timeout: "5"
+
+# Secrets (These should be encrypted in a real environment)
+secrets:
+  databasePassword: 764683262616614816
+  djangoSecretKey: 26534243741749116021192025995
+  emailUser: "your-email@example.com"
+  emailPassword: 6011289827614
+  awsAccessKey: 3025286925090
+  awsSecretKey: 18079260901844811068
