@@ -31,5 +31,3 @@ spec:
     protocol: TCP
     name: http
   type: LoadBalancer
-  externalIPs:
-  - 127.0.0.1
