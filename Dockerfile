@@ -1,5 +1,5 @@
-# Base image with Python 3.10
-FROM python:3.10-slim as base
+# Base image with Python 3.11
+FROM python:3.11-slim as base
 
 # Build stage
 FROM base as builder
@@ -26,7 +26,7 @@ FROM base
 WORKDIR /app
 
 # Copy Python dependencies from builder
-COPY --from=builder /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \

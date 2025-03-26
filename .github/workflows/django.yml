@@ -8,12 +8,11 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      max-parallel: 1
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.11]
 
     steps:
     - uses: actions/checkout@v4
@@ -25,6 +24,26 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Run Tests
+        pip install pytest pytest-cov
+    - name: Set up environment variables
       run: |
-        python manage.py test
+        echo "DJANGO_SETTINGS_MODULE=core.settings.test" >> $GITHUB_ENV
+        echo "DATABASE_URL=sqlite:///test.db" >> $GITHUB_ENV
+        echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+        echo "CELERY_BROKER_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+        echo "CELERY_RESULT_BACKEND=redis://localhost:6379/0" >> $GITHUB_ENV
+    - name: Run Tests with Coverage
+      run: |
+        pytest --cov=banking_api --cov=providers --cov=models --cov-report=term-missing --cov-fail-under=80
+    - name: Run Django Checks
+      run: |
+        python manage.py check --deploy
+    - name: Run Django Migrations
+      run: |
+        python manage.py migrate --noinput
+    - name: Run Django Management Commands
+      run: |
+        python manage.py collectstatic --noinput
+    - name: Run Django Shell Tests
+      run: |
+        python manage.py shell -c "from django.test import Client; c = Client(); c.get('/')"
