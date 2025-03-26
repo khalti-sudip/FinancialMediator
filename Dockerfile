@@ -31,7 +31,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/pyth
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=core.settings.production \
+    DJANGO_SETTINGS_MODULE=banking_project.settings \
     GUNICORN_CMD_ARGS="--workers 3 --bind 0.0.0.0:8000 --timeout 120"
 
 # Copy project files
@@ -49,8 +49,5 @@ USER 1000
 # Collect static files
 RUN python manage.py collectstatic --noinput --clear
 
-# Run gunicorn
-COPY docker-entrypoint.sh wait-for-it.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh /app/wait-for-it.sh
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["gunicorn", "core.wsgi:application"]
+# Command to run the application
+CMD ["gunicorn", "banking_project.wsgi:application"]
