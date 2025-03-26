@@ -1,0 +1,15 @@
+apiVersion: v2
+name: financialmediator
+version: 0.1.0
+description: A Helm chart for FinancialMediator
+type: application
+
+# Default values for financialmediator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# The values from values.yaml are automatically loaded.
+# You can override them with --set key=value on the command line.
+
+# Example:
+# helm install financialmediator . --set django.debug=True
