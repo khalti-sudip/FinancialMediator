@@ -3,34 +3,39 @@ version: '3.8'
 services:
   # Django Web Application
   web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    build:
+      context: .
+      target: production
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
     ports:
       - "8000:8000"
+    environment:
+      - DEBUG=0
+      - DJANGO_SETTINGS_MODULE=core.settings.production
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/financialmediator
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - db
       - redis
-    environment:
-      - DEBUG=True
-      - DJANGO_SECRET_KEY=dev_secret_key_replace_in_production
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/financialmediator
-      - REDIS_URL=redis://redis:6379/0
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
     networks:
       - app-network
 
   # PostgreSQL Database
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_data:/var/lib/postgresql/data
     environment:
+      - POSTGRES_DB=financialmediator
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=financialmediator
     ports:
       - "5432:5432"
     networks:
@@ -38,7 +43,9 @@ services:
 
   # Redis for Caching and Celery
   redis:
-    image: redis:7
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
     networks:
@@ -46,36 +53,44 @@ services:
 
   # Celery Worker
   celery:
-    build: .
+    build:
+      context: .
+      target: production
     command: celery -A core worker --loglevel=info
     volumes:
       - .:/app
+      - logs_volume:/app/logs
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings.production
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/financialmediator
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - db
       - redis
-    environment:
-      - DEBUG=True
-      - DJANGO_SECRET_KEY=dev_secret_key_replace_in_production
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/financialmediator
-      - REDIS_URL=redis://redis:6379/0
     networks:
       - app-network
 
   # Celery Beat for Scheduled Tasks
   celery-beat:
-    build: .
-    command: celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    build:
+      context: .
+      target: production
+    command: celery -A core beat --loglevel=info
     volumes:
       - .:/app
+      - logs_volume:/app/logs
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings.production
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/financialmediator
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - db
       - redis
       - celery
-    environment:
-      - DEBUG=True
-      - DJANGO_SECRET_KEY=dev_secret_key_replace_in_production
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/financialmediator
-      - REDIS_URL=redis://redis:6379/0
     networks:
       - app-network
 
@@ -85,3 +100,7 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  logs_volume:

@@ -116,6 +116,40 @@ celery -A core beat -l info
 python manage.py runserver
 ```
 
+## Docker Setup
+
+1. Build and run the application using Docker Compose:
+```bash
+docker-compose up --build
+```
+
+2. The application will be available at:
+- Web: http://localhost:8000
+- API Documentation: http://localhost:8000/api/docs/
+- Health Check: http://localhost:8000/api/health/
+
+3. Access the Django admin interface at http://localhost:8000/admin/
+
+## Environment Variables
+
+The application uses environment variables for configuration. Copy `.env.example` to `.env` and update the values:
+
+```bash
+cp .env.example .env
+```
+
+Key environment variables:
+- `DJANGO_SECRET_KEY`: Django secret key
+- `DEBUG`: Development mode (True/False)
+- `ALLOWED_HOSTS`: Allowed hostnames
+- `DATABASE_URL`: PostgreSQL connection URL
+- `REDIS_URL`: Redis connection URL
+- `CELERY_BROKER_URL`: Celery broker URL
+- `CELERY_RESULT_BACKEND`: Celery result backend URL
+- `RATE_LIMIT_REQUESTS`: API rate limit requests
+- `RATE_LIMIT_DURATION`: API rate limit duration (seconds)
+- `LOG_LEVEL`: Logging level (DEBUG/INFO/WARNING/ERROR)
+
 ## API Documentation
 
 - Swagger UI: http://localhost:8000/api/docs/

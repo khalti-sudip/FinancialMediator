@@ -89,6 +89,10 @@ INSTALLED_APPS = [
     "banking_api",
 ]
 
+# Rate Limiting Configuration
+RATE_LIMIT_REQUESTS = 100  # Maximum requests per duration
+RATE_LIMIT_DURATION = 60   # Duration in seconds
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -101,6 +105,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "banking_api.middleware.RequestIdMiddleware",
     "banking_api.middleware.RequestLoggerMiddleware",
+    "banking_api.middleware.rate_limiter.RateLimitMiddleware",
 ]
 
 ROOT_URLCONF = "banking_project.urls"

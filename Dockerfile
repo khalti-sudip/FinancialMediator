@@ -1,31 +1,56 @@
-FROM python:3.10-slim
+# Base image with Python 3.10
+FROM python:3.10-slim as base
+
+# Build stage
+FROM base as builder
 
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=core.settings
-
 # Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc postgresql-client libpq-dev \
-    && apt-get clean \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    postgresql-client \
+    libpq-dev \
+    musl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /root/.cache
 
-# Copy project
+# Production stage
+FROM base
+
+WORKDIR /app
+
+# Copy Python dependencies from builder
+COPY --from=builder /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=core.settings.production \
+    GUNICORN_CMD_ARGS="--workers 3 --bind 0.0.0.0:8000 --timeout 120"
+
+# Copy project files
 COPY . /app/
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R 1000:1000 /app/logs
+
+# Set permissions
+RUN chown -R 1000:1000 /app
+
+# Switch to non-root user
+USER 1000
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput --clear
 
 # Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "core.wsgi:application"]
+COPY docker-entrypoint.sh wait-for-it.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh /app/wait-for-it.sh
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["gunicorn", "core.wsgi:application"]

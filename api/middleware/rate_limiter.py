@@ -46,12 +46,6 @@ def rate_limit(requests=100, duration=60, key_prefix='rl'):
     
     Returns:
         Decorated function with rate limiting
-    
-    Example:
-        @api_view(['GET'])
-        @rate_limit(requests=100, duration=60)
-        def get_resource(request):
-            return Response({'data': 'resource'})
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -63,54 +57,50 @@ def rate_limit(requests=100, duration=60, key_prefix='rl'):
             
             # Get current count and timestamp
             now = int(time.time())
-            window_start = now - duration
-            
-            # Using cache for rate limiting
-            request_history = cache.get(key) or []
-            
-            # Filter out old requests
-            request_history = [t for t in request_history if t > window_start]
             
             # Check if rate limit is exceeded
-            if len(request_history) >= requests:
-                oldest_request = min(request_history) if request_history else now
-                wait_time = oldest_request - window_start
-                response = {
-                    "error": "Rate limit exceeded",
-                    "wait_seconds": wait_time,
-                    "limit": requests,
-                    "duration": duration
-                }
-                
-                # Add rate limit headers
-                headers = {
-                    "X-RateLimit-Limit": str(requests),
-                    "X-RateLimit-Remaining": "0",
-                    "X-RateLimit-Reset": str(oldest_request + duration),
-                    "Retry-After": str(wait_time)
-                }
-                
-                return JsonResponse(response, status=status.HTTP_429_TOO_MANY_REQUESTS, headers=headers)
+            current_count = cache.get(key)
+            if current_count is None:
+                current_count = 0
             
-            # Add current timestamp to history and store
-            request_history.append(now)
-            cache.set(key, request_history, duration * 2)  # Store for twice the duration to handle edge cases
+            if current_count >= requests:
+                # Calculate when the first request in this window was made
+                first_request_time = cache.get(f"{key}:first")
+                if first_request_time:
+                    wait_time = first_request_time + duration - now
+                    if wait_time > 0:
+                        response = {
+                            "error": "Rate limit exceeded",
+                            "wait_seconds": wait_time,
+                            "limit": requests,
+                            "duration": duration
+                        }
+                        
+                        # Add rate limit headers
+                        headers = {
+                            "X-RateLimit-Limit": str(requests),
+                            "X-RateLimit-Remaining": "0",
+                            "X-RateLimit-Reset": str(first_request_time + duration),
+                            "Retry-After": str(wait_time)
+                        }
+                        
+                        return JsonResponse(response, status=status.HTTP_429_TOO_MANY_REQUESTS, headers=headers)
+            
+            # Update the count and set the first request time if needed
+            if current_count == 0:
+                cache.set(f"{key}:first", now, duration)
+            cache.incr(key)
+            cache.expire(key, duration)
             
             # Add rate limit headers to the response
             response = view_func(self, request, *args, **kwargs)
             response["X-RateLimit-Limit"] = str(requests)
-            response["X-RateLimit-Remaining"] = str(requests - len(request_history))
+            response["X-RateLimit-Remaining"] = str(requests - current_count - 1)
             response["X-RateLimit-Reset"] = str(now + duration)
             
             return response
         
         return wrapped_view
-    
-    # Handle both @rate_limit and @rate_limit()
-    if callable(requests):
-        view_func = requests
-        requests = 100
-        return decorator(view_func)
     
     return decorator
 
@@ -127,7 +117,7 @@ class RateLimitMiddleware:
         self.get_response = get_response
         self.requests = getattr(settings, 'RATE_LIMIT_REQUESTS', 100)
         self.duration = getattr(settings, 'RATE_LIMIT_DURATION', 60)
-    
+        
     def __call__(self, request):
         """Process the request.
         
@@ -144,42 +134,50 @@ class RateLimitMiddleware:
         # Generate a unique key for this client
         user_id = request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None
         ip = get_client_ip(request)
-        key = f"global_rl:{ip}:{user_id or 'anonymous'}"
+        key = f"rl:{ip}:{user_id or 'anonymous'}"
         
-        # Check rate limiting
+        # Get current count and timestamp
         now = int(time.time())
-        window_start = now - self.duration
         
-        request_history = cache.get(key) or []
-        request_history = [t for t in request_history if t > window_start]
+        # Check if rate limit is exceeded
+        current_count = cache.get(key)
+        if current_count is None:
+            current_count = 0
         
-        if len(request_history) >= self.requests:
-            oldest_request = min(request_history) if request_history else now
-            wait_time = oldest_request - window_start
-            response = JsonResponse({
-                "error": "Global rate limit exceeded",
-                "wait_seconds": wait_time,
-                "limit": self.requests,
-                "duration": self.duration
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-            
-            response["X-RateLimit-Limit"] = str(self.requests)
-            response["X-RateLimit-Remaining"] = "0"
-            response["X-RateLimit-Reset"] = str(oldest_request + self.duration)
-            response["Retry-After"] = str(wait_time)
-            
-            return response
+        if current_count >= self.requests:
+            # Calculate when the first request in this window was made
+            first_request_time = cache.get(f"{key}:first")
+            if first_request_time:
+                wait_time = first_request_time + self.duration - now
+                if wait_time > 0:
+                    response = {
+                        "error": "Rate limit exceeded",
+                        "wait_seconds": wait_time,
+                        "limit": self.requests,
+                        "duration": self.duration
+                    }
+                    
+                    # Add rate limit headers
+                    headers = {
+                        "X-RateLimit-Limit": str(self.requests),
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": str(first_request_time + self.duration),
+                        "Retry-After": str(wait_time)
+                    }
+                    
+                    return JsonResponse(response, status=status.HTTP_429_TOO_MANY_REQUESTS, headers=headers)
         
-        # Add current timestamp to history and store
-        request_history.append(now)
-        cache.set(key, request_history, self.duration * 2)
+        # Update the count and set the first request time if needed
+        if current_count == 0:
+            cache.set(f"{key}:first", now, self.duration)
+        cache.incr(key)
+        cache.expire(key, self.duration)
         
-        # Get the response
         response = self.get_response(request)
         
-        # Add headers
+        # Add rate limit headers to the response
         response["X-RateLimit-Limit"] = str(self.requests)
-        response["X-RateLimit-Remaining"] = str(self.requests - len(request_history))
+        response["X-RateLimit-Remaining"] = str(self.requests - current_count - 1)
         response["X-RateLimit-Reset"] = str(now + self.duration)
         
         return response
