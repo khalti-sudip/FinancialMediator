@@ -26,26 +26,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "SESSION_SECRET",
-    "django-insecure-mu7g(ln=jhmu&#fd5o743iro!qkj-!a5@-l9r#si0j1p%m7s=7",
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-mu7g(ln=jhmu&#fd5o743iro!qkj-!a5@-l9r#si0j1p%m7s=7")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"]  # In production, restrict this to specific domains
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 # CSRF and CORS Configuration
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.replit.dev",
-    "https://*.replit.app",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
 ]
 
 # CORS Settings
-CORS_ALLOW_ALL_ORIGINS = True  # For development only, restrict in production
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     "DELETE",
@@ -135,11 +130,11 @@ WSGI_APPLICATION = "banking_project.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("PGDATABASE", "neondb"),
-        "USER": os.environ.get("PGUSER", "neondb_owner"),
-        "PASSWORD": os.environ.get("PGPASSWORD", ""),
-        "HOST": os.environ.get("PGHOST", "localhost"),
-        "PORT": os.environ.get("PGPORT", "5432"),
+        "NAME": os.environ.get("DATABASE_NAME", "neondb"),
+        "USER": os.environ.get("DATABASE_USER", "neondb_owner"),
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD", ""),
+        "HOST": os.environ.get("DATABASE_HOST", "localhost"),
+        "PORT": os.environ.get("DATABASE_PORT", "5432"),
         "OPTIONS": {
             "sslmode": "require",
             "keepalives": 1,
@@ -213,11 +208,6 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# Static files configuration
-STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 # REST Framework settings
 REST_FRAMEWORK = {
