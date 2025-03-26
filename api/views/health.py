@@ -22,6 +22,33 @@ from api.serializers import HealthCheckSerializer
 
 logger = logging.getLogger(__name__)
 
+class BaseHealthCheck:
+    """Base class for health check components."""
+    
+    def __init__(self, name):
+        self.name = name
+        
+    def _measure_latency(self, func):
+        """Measure the latency of a function call."""
+        try:
+            start = timezone.now()
+            func()
+            end = timezone.now()
+            return (end - start).total_seconds() * 1000
+        except Exception:
+            return None
+            
+    def _get_status_response(self, is_healthy, error=None, extra=None):
+        """Create a standardized status response."""
+        response = {
+            "status": "up" if is_healthy else "down",
+        }
+        if error:
+            response["error"] = str(error)
+        if extra:
+            response.update(extra)
+        return response
+
 class HealthCheckView(APIView):
     """View for checking system health status."""
     
@@ -41,14 +68,15 @@ class HealthCheckView(APIView):
             Response: Health check results
         """
         try:
-            # Check database
-            db_status = self._check_database()
+            # Initialize checkers
+            db_checker = DatabaseHealthCheck()
+            redis_checker = RedisHealthCheck()
+            celery_checker = CeleryHealthCheck()
             
-            # Check Redis
-            redis_status = self._check_redis()
-            
-            # Check Celery
-            celery_status = self._check_celery()
+            # Perform checks
+            db_status = db_checker.check()
+            redis_status = redis_checker.check()
+            celery_status = celery_checker.check()
             
             # Prepare response
             data = {
@@ -76,62 +104,79 @@ class HealthCheckView(APIView):
                 {"status": "error", "message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+class DatabaseHealthCheck(BaseHealthCheck):
+    """Health checker for database connectivity."""
     
-    def _check_database(self):
-        """
-        Check database connectivity.
+    def __init__(self):
+        super().__init__("database")
         
-        Returns:
-            dict: Database status information
-        """
+    def check(self):
+        """Check database connectivity."""
         try:
             # Try to connect
             conn = psycopg2.connect(settings.DATABASES["default"]["NAME"])
             conn.close()
             
-            return {
-                "status": "up",
-                "latency": self._measure_db_latency(),
-            }
+            latency = self._measure_latency(
+                lambda: self._test_db_connection()
+            )
+            
+            return self._get_status_response(
+                is_healthy=True,
+                extra={"latency": latency}
+            )
             
         except Exception as e:
             logger.error("Database check failed", exc_info=True)
-            return {
-                "status": "down",
-                "error": str(e),
-            }
+            return self._get_status_response(
+                is_healthy=False,
+                error=e
+            )
+            
+    def _test_db_connection(self):
+        """Execute a simple query to test the connection."""
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+
+class RedisHealthCheck(BaseHealthCheck):
+    """Health checker for Redis connectivity."""
     
-    def _check_redis(self):
-        """
-        Check Redis connectivity.
+    def __init__(self):
+        super().__init__("redis")
         
-        Returns:
-            dict: Redis status information
-        """
+    def check(self):
+        """Check Redis connectivity."""
         try:
             # Try to ping Redis
             redis_client = redis.from_url(settings.REDIS_URL)
             redis_client.ping()
             
-            return {
-                "status": "up",
-                "latency": self._measure_redis_latency(),
-            }
+            latency = self._measure_latency(
+                lambda: cache.get("health_check_test")
+            )
+            
+            return self._get_status_response(
+                is_healthy=True,
+                extra={"latency": latency}
+            )
             
         except Exception as e:
             logger.error("Redis check failed", exc_info=True)
-            return {
-                "status": "down",
-                "error": str(e),
-            }
+            return self._get_status_response(
+                is_healthy=False,
+                error=e
+            )
+
+class CeleryHealthCheck(BaseHealthCheck):
+    """Health checker for Celery worker status."""
     
-    def _check_celery(self):
-        """
-        Check Celery worker status.
+    def __init__(self):
+        super().__init__("celery")
         
-        Returns:
-            dict: Celery status information
-        """
+    def check(self):
+        """Check Celery worker status."""
         try:
             # Try to inspect workers
             from celery.app import current_app
@@ -140,74 +185,33 @@ class HealthCheckView(APIView):
             workers = inspector.active()
             
             if not workers:
-                return {
-                    "status": "down",
-                    "error": "No active workers found",
-                }
+                return self._get_status_response(
+                    is_healthy=False,
+                    error="No active workers found"
+                )
             
-            return {
-                "status": "up",
-                "workers": len(workers),
-                "tasks": self._get_celery_stats(),
-            }
+            return self._get_status_response(
+                is_healthy=True,
+                extra={
+                    "workers": len(workers),
+                    "tasks": self._get_celery_stats()
+                }
+            )
             
         except Exception as e:
             logger.error("Celery check failed", exc_info=True)
-            return {
-                "status": "down",
-                "error": str(e),
-            }
-    
-    def _measure_db_latency(self):
-        """
-        Measure database query latency.
-        
-        Returns:
-            float: Query latency in milliseconds
-        """
-        try:
-            start = timezone.now()
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1")
-            end = timezone.now()
+            return self._get_status_response(
+                is_healthy=False,
+                error=e
+            )
             
-            return (end - start).total_seconds() * 1000
-            
-        except Exception:
-            return None
-    
-    def _measure_redis_latency(self):
-        """
-        Measure Redis operation latency.
-        
-        Returns:
-            float: Operation latency in milliseconds
-        """
-        try:
-            start = timezone.now()
-            cache.get("health_check_test")
-            end = timezone.now()
-            
-            return (end - start).total_seconds() * 1000
-            
-        except Exception:
-            return None
-    
     def _get_celery_stats(self):
-        """
-        Get Celery task statistics.
-        
-        Returns:
-            dict: Task statistics
-        """
-        try:
-            stats = cache.get("celery_stats") or {}
-            return {
-                "processed": stats.get("processed", 0),
-                "failed": stats.get("failed", 0),
-                "active": stats.get("active", 0),
-            }
-            
-        except Exception:
-            return {}
+        """Get Celery task statistics."""
+        from celery.app import current_app
+        inspector = current_app.control.inspect()
+        stats = {
+            "active": len(inspector.active() or {}),
+            "scheduled": len(inspector.scheduled() or {}),
+            "reserved": len(inspector.reserved() or {}),
+        }
+        return stats
