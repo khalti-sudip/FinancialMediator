@@ -1,9 +1,26 @@
-# Financial Mediator API
+# Financial Mediator
 
-A Django REST Framework-based API that mediates financial transactions between various payment providers and banking systems.
+A modern financial transaction management system with separate frontend and backend components.
+
+## Project Structure
+
+```
+FinancialMediator/
+├── backend/          # Django backend API
+│   ├── api/         # REST API implementation
+│   ├── core/        # Core application settings
+│   ├── providers/   # Payment provider integrations
+│   └── banking/     # Banking-related functionality
+├── frontend/        # React frontend application
+│   ├── src/        # Source code
+│   ├── public/     # Static files
+│   └── tests/      # Test files
+└── docs/           # Documentation
+```
 
 ## Features
 
+### Backend
 - **Multi-Provider Integration**: Seamless integration with multiple payment providers, wallet services, banking systems, and KYC verification services
 - **Transaction Management**: Comprehensive handling of deposits, withdrawals, payments, refunds, and transfers
 - **Payment Method Management**: Support for adding, verifying, and managing various payment methods
@@ -15,8 +32,20 @@ A Django REST Framework-based API that mediates financial transactions between v
 - **API Documentation**: Comprehensive OpenAPI/Swagger documentation with usage examples
 - **WebSocket Support**: Real-time transaction updates and notifications
 
+### Frontend
+- **Modern UI**: Built with React and Material-UI
+- **State Management**: Redux Toolkit for global state management
+- **Routing**: React Router for navigation
+- **Form Handling**: Formik + Yup for form validation
+- **Data Visualization**: Chart.js for transaction analytics
+- **Responsive Design**: Mobile-first approach
+- **API Integration**: Type-safe API calls with TypeScript
+- **Authentication**: Secure authentication flows
+- **Real-time Updates**: WebSocket integration for live updates
+
 ## Tech Stack
 
+### Backend
 - **Framework**: Django 5.0 with Django REST Framework
 - **Database**: PostgreSQL
 - **Cache**: Redis
@@ -25,45 +54,35 @@ A Django REST Framework-based API that mediates financial transactions between v
 - **Monitoring**: Prometheus, Sentry
 - **Testing**: pytest with comprehensive test coverage
 
-## Modules
-
-### Core
-- Configuration, settings, and base functionality
-- Celery setup for background tasks
-- Error handling and middleware
-
-### API
-- Authentication and authorization
-- Request tracking and rate limiting
-- Health checks and system monitoring
-- Common utilities and serializers
-
-### Providers
-- Payment provider integration (Stripe, PayPal, etc.)
-- Wallet provider integration (electronic wallets)
-- Banking provider integration
-- KYC verification integration
-- Webhook handling and signature verification
-- API key management and security
-
-### Banking
-- Account management (create, verify, balance operations)
-- Transaction processing (deposits, withdrawals, transfers)
-- Payment processing and method management
-- Statement generation and reporting
+### Frontend
+- **Framework**: React 18
+- **Language**: TypeScript
+- **UI Components**: Material-UI
+- **State Management**: Redux Toolkit
+- **Routing**: React Router
+- **Form Handling**: Formik + Yup
+- **Charts**: Chart.js
+- **WebSocket**: Real-time updates
 
 ## Prerequisites
 
+### Backend
 - Python 3.10+
 - PostgreSQL 14+
 - Redis 6+
 
+### Frontend
+- Node.js 16+
+- npm or yarn
+
 ## Installation
+
+### Backend
 
 1. Clone the repository:
 ```bash
 git clone https://github.com/khalti-sudip/FinancialMediator.git
-cd FinancialMediator
+cd FinancialMediator/backend
 ```
 
 2. Create and activate a virtual environment:
@@ -94,61 +113,102 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
+### Frontend
+
+1. Navigate to the frontend directory:
+```bash
+cd FinancialMediator/frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Create a .env file:
+```env
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_API_VERSION=v1
+```
+
 ## Running the Application
 
-1. Start Redis:
+### Using Docker
+
+1. Build and run both services using Docker Compose:
 ```bash
-redis-server
+docker-compose -f backend/docker-compose.yml -f frontend/docker-compose.yml up --build
 ```
 
-2. Start Celery worker:
-```bash
-celery -A core worker -l info
-```
-
-3. Start Celery beat (for scheduled tasks):
-```bash
-celery -A core beat -l info
-```
-
-4. Run the development server:
-```bash
-python manage.py runserver
-```
-
-## Docker Setup
-
-1. Build and run the application using Docker Compose:
-```bash
-docker-compose up --build
-```
-
-2. The application will be available at:
-- Web: http://localhost:8000
+2. The services will be available at:
+- Backend API: http://localhost:8000
+- Frontend: http://localhost:3000
 - API Documentation: http://localhost:8000/api/docs/
 - Health Check: http://localhost:8000/api/health/
 
-3. Access the Django admin interface at http://localhost:8000/admin/
+### Local Development
+
+1. Start the backend server:
+```bash
+cd backend
+python manage.py runserver
+```
+
+2. Start the frontend development server:
+```bash
+cd frontend
+npm start
+```
+
+3. Start Celery worker:
+```bash
+cd backend
+celery -A backend worker --loglevel=info
+```
+
+4. Start Celery beat:
+```bash
+cd backend
+celery -A backend beat --loglevel=info
+```
 
 ## Environment Variables
 
-The application uses environment variables for configuration. Copy `.env.example` to `.env` and update the values:
+### Backend
+```env
+# Core
+DJANGO_SECRET_KEY=your-secret-key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 
-```bash
-cp .env.example .env
+# Database
+DATABASE_NAME=financial_mediator
+DATABASE_USER=postgres
+DATABASE_PASSWORD=your-password
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Celery
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+# JWT
+JWT_SECRET_KEY=your-jwt-secret
 ```
 
-Key environment variables:
-- `DJANGO_SECRET_KEY`: Django secret key
-- `DEBUG`: Development mode (True/False)
-- `ALLOWED_HOSTS`: Allowed hostnames
-- `DATABASE_URL`: PostgreSQL connection URL
-- `REDIS_URL`: Redis connection URL
-- `CELERY_BROKER_URL`: Celery broker URL
-- `CELERY_RESULT_BACKEND`: Celery result backend URL
-- `RATE_LIMIT_REQUESTS`: API rate limit requests
-- `RATE_LIMIT_DURATION`: API rate limit duration (seconds)
-- `LOG_LEVEL`: Logging level (DEBUG/INFO/WARNING/ERROR)
+### Frontend
+```env
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_API_VERSION=v1
+```
 
 ## API Documentation
 
@@ -199,108 +259,30 @@ Key environment variables:
 
 ## Testing
 
-Run the test suite:
+### Backend
+
+Run backend tests:
 ```bash
-pytest
+cd backend
+python -m pytest
 ```
 
-Run with coverage:
+### Frontend
+
+Run frontend tests:
 ```bash
-pytest --cov=.
-```
-
-## Code Quality
-
-Format code:
-```bash
-black .
-isort .
-```
-
-Lint code:
-```bash
-flake8
-```
-
-## Monitoring
-
-- Prometheus metrics: http://localhost:8000/metrics
-- Health check: http://localhost:8000/health/
-
-## Deployment
-
-1. Set production environment variables
-2. Collect static files:
-```bash
-python manage.py collectstatic
-```
-
-3. Run migrations:
-```bash
-python manage.py migrate
-```
-
-4. Start the application with gunicorn:
-```bash
-gunicorn core.wsgi:application
-```
-
-## Project Structure
-
-```
-FinancialMediator/
-├── api/                  # Core API functionality
-│   ├── middleware/       # Custom middleware
-│   ├── views/            # API views
-│   ├── models.py         # API models
-│   ├── serializers.py    # API serializers
-│   ├── tasks.py          # Background tasks
-│   └── error_handlers.py # Error handling
-├── banking/              # Banking integration
-│   ├── views/            # Banking views
-│   ├── models.py         # Banking models
-│   ├── serializers.py    # Banking serializers
-│   ├── services.py       # Banking services
-│   └── tasks.py          # Banking tasks
-├── core/                 # Project configuration
-│   ├── settings.py       # Django settings
-│   ├── urls.py           # URL routing
-│   ├── celery.py         # Celery configuration
-│   ├── wsgi.py           # WSGI configuration
-│   └── asgi.py           # ASGI configuration
-├── providers/            # Provider integration
-│   ├── views/            # Provider views
-│   ├── handlers/         # Webhook handlers
-│   ├── models.py         # Provider models
-│   ├── serializers.py    # Provider serializers
-│   ├── tasks.py          # Provider tasks
-│   └── utils.py          # Provider utilities
-├── docs/                 # Documentation
-│   ├── api/              # API docs
-│   └── deployment/       # Deployment guides
-├── tests/                # Test suite
-│   ├── api/              # API tests
-│   ├── banking/          # Banking tests
-│   └── providers/        # Provider tests
-├── templates/            # HTML templates
-├── static/               # Static files
-├── .env                  # Environment variables
-├── manage.py             # Django management script
-└── requirements.txt      # Project dependencies
+cd frontend
+npm test
 ```
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests
-5. Submit a pull request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please open an issue in the GitHub repository or contact the maintainers.
+[Add your license information here]
