@@ -31,3 +31,5 @@ spec:
     protocol: TCP
     name: http
   type: NodePort
+  externalIPs:
+  - 192.168.49.2

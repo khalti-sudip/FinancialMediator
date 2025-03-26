@@ -19,7 +19,7 @@ spec:
         image: financialmediator:latest
         imagePullPolicy: IfNotPresent
         command: ["/bin/sh"]
-        args: ["-c", "gunicorn banking_project.wsgi:application --workers 3 --bind 0.0.0.0:8000 --timeout 120"]
+        args: ["-c", "uwsgi --ini /app/uwsgi.ini"]
         ports:
         - containerPort: 8000
         env:
@@ -36,7 +36,7 @@ spec:
         - name: DEBUG
           value: "True"
         - name: ALLOWED_HOSTS
-          value: "localhost,127.0.0.1"
+          value: "localhost,127.0.0.1,nabilwealth.com"
         - name: CORS_ALLOWED_ORIGINS
           value: "http://localhost:8000"
         envFrom:
