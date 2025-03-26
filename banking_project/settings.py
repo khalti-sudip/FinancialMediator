@@ -112,6 +112,10 @@ DATABASES = {
         'PASSWORD': env('DATABASE_PASSWORD', default='financialmediator'),
         'HOST': env('DATABASE_HOST', default='localhost'),
         'PORT': env('DATABASE_PORT', default='5432'),
+        'OPTIONS': {
+            'max_connections': 100,
+            'max_size': 200,
+        }
     }
 }
 
@@ -251,6 +255,8 @@ CACHES = {
 
 RATELIMIT_VIEW_RATE = env('RATE_LIMIT_REQUESTS', default='100/minute')
 RATELIMIT_USE_CACHE = 'default'
+RATE_LIMIT_WINDOW = 60  # 1 minute
+RATE_LIMIT_REQUESTS = 1000  # Default max requests per window
 
 # ----------------
 # Logging Configuration
@@ -302,3 +308,11 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+# Connection Pool Settings
+POOL_CONNECTIONS = 100
+POOL_MAXSIZE = 200
+
+# Cache Settings
+CACHE_TIMEOUT = 300  # 5 minutes
+CACHE_PREFIX = "financial_mediator"
