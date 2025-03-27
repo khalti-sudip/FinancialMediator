@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: financial-mediator
+  labels:
+    app: celery-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: docker-desktop:5000/financial-mediator:latest
+        command: ["celery"]
+        args: ["-A", "core", "worker", "--loglevel=info"]
+        envFrom:
+        - secretRef:
+            name: celery-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "celery -A core inspect ping"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "celery -A core inspect ping"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: regcred
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  namespace: financial-mediator
+  labels:
+    app: celery-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-beat
+  template:
+    metadata:
+      labels:
+        app: celery-beat
+    spec:
+      containers:
+      - name: celery-beat
+        image: docker-desktop:5000/financial-mediator:latest
+        command: ["celery"]
+        args: ["-A", "core", "beat", "--loglevel=info"]
+        envFrom:
+        - secretRef:
+            name: celery-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "celery -A core beat check"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "celery -A core beat check"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: regcred
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: celery-config
+  namespace: financial-mediator
+  labels:
+    app: celery
+    component: config
+data:
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/0
+  CELERY_TASK_TRACK_STARTED: "true"
+  CELERY_TASK_TIME_LIMIT: "300"
+  CELERY_TASK_SOFT_TIME_LIMIT: "270"
+  CELERY_WORKER_MAX_TASKS_PER_CHILD: "100"
+  CELERY_WORKER_MAX_MEMORY_PER_CHILD: "500000"
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: celery-secrets
+  namespace: financial-mediator
+  labels:
+    app: celery
+    component: secrets
+type: Opaque
+data:
+  # Base64 encoded values for sensitive data
+  CELERY_BROKER_PASSWORD: ""  # Add your broker password here
+  CELERY_RESULT_PASSWORD: ""   # Add your result backend password here
+  CELERY_BEAT_SCHEDULE: ""     # Add your beat schedule here
+  CELERY_TASK_SERIALIZER: ""   # Add your task serializer here
+  CELERY_RESULT_SERIALIZER: "" # Add your result serializer here
+  CELERY_ACCEPT_CONTENT: ""    # Add your accepted content types here
+  CELERY_TIMEZONE: ""          # Add your timezone here
+  CELERY_ENABLE_UTC: ""        # Add your UTC setting here
+  CELERY_WORKER_CONCURRENCY: ""# Add your worker concurrency here
+  CELERY_WORKER_PREFETCH_MULTIPLIER: "" # Add your prefetch multiplier here
+  CELERY_WORKER_SEND_TASK_EVENTS: ""    # Add your task events setting here
+  CELERY_TASK_ACKS_LATE: ""    # Add your late acks setting here
+  CELERY_WORKER_DISABLE_RATE_LIMITS: "" # Add your rate limits setting here
+  CELERY_WORKER_LOG_FORMAT: "" # Add your log format here
+  CELERY_WORKER_TASK_LOG_FORMAT: ""     # Add your task log format here
+  CELERY_WORKER_REDIRECT_STDOUTS: ""    # Add your stdout redirection setting here
+  CELERY_WORKER_REDIRECT_STDOUTS_LEVEL: "" # Add your stdout level here
+  CELERY_WORKER_STATE_DB: ""   # Add your state database setting here
+  CELERY_WORKER_POOL: ""       # Add your worker pool setting here
+  CELERY_WORKER_AUTOSCALER: "" # Add your autoscaler setting here
+  CELERY_WORKER_MAX_TASKS_PER_CHILD: "" # Add your max tasks per child setting here
+  CELERY_WORKER_MAX_MEMORY_PER_CHILD: "" # Add your max memory per child setting here
+  CELERY_WORKER_SOFT_TIME_LIMIT: ""     # Add your soft time limit setting here
+  CELERY_WORKER_TIME_LIMIT: ""          # Add your time limit setting here
+  CELERY_WORKER_TASK_SOFT_TIME_LIMIT: "" # Add your task soft time limit setting here
+  CELERY_WORKER_TASK_TIME_LIMIT: ""     # Add your task time limit setting here
+  CELERY_WORKER_TASK_SERIALIZER: ""     # Add your task serializer setting here
+  CELERY_WORKER_RESULT_SERIALIZER: ""   # Add your result serializer setting here
+  CELERY_WORKER_ACCEPT_CONTENT: ""      # Add your accepted content types setting here
+  CELERY_WORKER_TIMEZONE: ""           # Add your timezone setting here
+  CELERY_WORKER_ENABLE_UTC: ""         # Add your UTC setting here
+  CELERY_WORKER_CONCURRENCY: ""        # Add your worker concurrency setting here
+  CELERY_WORKER_PREFETCH_MULTIPLIER: "" # Add your prefetch multiplier setting here
+  CELERY_WORKER_SEND_TASK_EVENTS: ""    # Add your task events setting here
+  CELERY_WORKER_TASK_ACKS_LATE: ""     # Add your late acks setting here
+  CELERY_WORKER_DISABLE_RATE_LIMITS: "" # Add your rate limits setting here
+  CELERY_WORKER_LOG_FORMAT: ""         # Add your log format here
+  CELERY_WORKER_TASK_LOG_FORMAT: ""     # Add your task log format here
+  CELERY_WORKER_REDIRECT_STDOUTS: ""    # Add your stdout redirection setting here
+  CELERY_WORKER_REDIRECT_STDOUTS_LEVEL: "" # Add your stdout level here
+  CELERY_WORKER_STATE_DB: ""           # Add your state database setting here
+  CELERY_WORKER_POOL: ""              # Add your worker pool setting here
+  CELERY_WORKER_AUTOSCALER: ""         # Add your autoscaler setting here

@@ -1,0 +1,178 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: financial-mediator
+  labels:
+    app: otel-collector
+    component: config
+data:
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'kubernetes-pods'
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                  action: keep
+                  regex: true
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                  action: replace
+                  target_label: __metrics_path__
+                  regex: (.+)
+                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  action: replace
+                  target_label: __address__
+                  regex: ([^:]+)(?::\d+)?;(.+)
+                  replacement: $1:$2
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: kubernetes_namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: kubernetes_pod_name
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_binary:
+            endpoint: 0.0.0.0:6832
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+    processors:
+      batch:
+        timeout: 10s
+      memory_limiter:
+        check_interval: 20s
+        limit_mib: 512
+        spike_limit_mib: 256
+        retry_on_limit: true
+      resourcedetection:
+        detectors: [k8s, env]
+    exporters:
+      prometheus:
+        endpoint: 0.0.0.0:8889
+      logging:
+        loglevel: debug
+      otlp:
+        endpoint: "otel-collector:4317"
+        insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp, jaeger]
+          processors: [memory_limiter, batch, resourcedetection]
+          exporters: [otlp, logging]
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, batch, resourcedetection]
+          exporters: [otlp, prometheus, logging]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resourcedetection]
+          exporters: [otlp, logging]
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: financial-mediator
+  labels:
+    app: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.80.0
+        args:
+          - --config=/etc/otel-collector-config/config.yaml
+        ports:
+        - containerPort: 4317
+          name: otlp-grpc
+        - containerPort: 4318
+          name: otlp-http
+        - containerPort: 55678
+          name: health-check
+        - containerPort: 55679
+          name: zpages
+        - containerPort: 8889
+          name: prometheus
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/otel-collector-config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: otel-collector-config
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "200m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 55678
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: 55678
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        failureThreshold: 3
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: financial-mediator
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4317
+    targetPort: 4317
+    name: otlp-grpc
+  - port: 4318
+    targetPort: 4318
+    name: otlp-http
+  - port: 55678
+    targetPort: 55678
+    name: health-check
+  - port: 55679
+    targetPort: 55679
+    name: zpages
+  - port: 8889
+    targetPort: 8889
+    name: prometheus
+  selector:
+    app: otel-collector
