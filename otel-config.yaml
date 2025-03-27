@@ -1,0 +1,85 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'prometheus'
+          static_configs:
+            - targets: ['localhost:9090']
+
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      network:
+      processes:
+      pagefaults:
+      filesystem:
+
+  jaeger:
+    protocols:
+      grpc:
+      thrift_http:
+
+  zipkin:
+    endpoints: ["http://localhost:9411/api/v2/spans"]
+
+exporters:
+  logging:
+    loglevel: debug
+
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+
+  otlp:
+    endpoint: "http://localhost:4317"
+    headers:
+      "x-api-key": "${OTEL_EXPORTER_OTLP_HEADERS}"
+
+  jaeger:
+    endpoint: "http://localhost:14268/api/traces"
+    insecure: true
+
+  zipkin:
+    endpoint: "http://localhost:9411/api/v2/spans"
+
+  console:
+    pretty_print: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp, jaeger, zipkin, hostmetrics]
+      processors: [memory_limiter, batch, resourcedetection]
+      exporters: [otlp, jaeger, zipkin, logging, console]
+
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics]
+      processors: [memory_limiter, batch, resourcedetection]
+      exporters: [otlp, prometheus, logging, console]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resourcedetection]
+      exporters: [otlp, logging, console]
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 256
+    ballast_size_mib: 64
+
+  batch:
+    timeout: 10s
+    send_batch_size: 512
+
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 10s

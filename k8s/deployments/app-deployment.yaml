@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financialmediator-app
+  labels:
+    app: financialmediator
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: financialmediator
+  template:
+    metadata:
+      labels:
+        app: financialmediator
+    spec:
+      containers:
+      - name: financialmediator
+        image: financialmediator:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: financialmediator-config
+        - secretRef:
+            name: financialmediator-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /health/
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        startupProbe:
+          httpGet:
+            path: /health/
+            port: 8000
+          failureThreshold: 30
+          periodSeconds: 10
+          timeoutSeconds: 10
+          initialDelaySeconds: 0
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/financialmediator
+      volumes:
+      - name: log-volume
+        emptyDir: {}
+      imagePullSecrets:
+      - name: registry-secret

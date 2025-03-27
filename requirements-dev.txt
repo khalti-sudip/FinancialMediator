@@ -1,8 +1,12 @@
-# Development and Testing
+# Development dependencies
+
+# Testing
 pytest>=7.4.0,<8.0.0
 pytest-django>=4.6.0,<5.0.0
 pytest-cov>=4.1.0,<5.0.0
 coverage>=7.3.0,<8.0.0
+
+# Code Quality
 black>=23.7.0,<24.0.0
 flake8>=6.1.0,<7.0.0
 isort>=5.12.0,<6.0.0
@@ -14,8 +18,44 @@ sphinx>=7.2.6,<8.0.0
 sphinx-rtd-theme>=1.3.0,<2.0.0
 sphinx-autodoc-typehints>=1.24.0,<2.0.0
 
+# Debugging
+django-debug-toolbar>=4.0.0,<5.0.0
+
+# Type Checking
+types-requests>=2.31.0,<3.0.0
+types-python-dateutil>=2.8.2,<3.0.0
+types-pyyaml>=6.0.1,<7.0.0
+
 # Version Control
 gitpython>=3.1.36,<4.0.0
+
+# Security
+bandit>=1.7.5,<2.0.0
+safety>=2.13.0,<3.0.0
+
+# Performance
+line_profiler>=3.6.0,<4.0.0
+memory_profiler>=0.61.0,<1.0.0
+
+# API Documentation
+openapi-spec-validator>=0.5.0,<1.0.0
+swagger-ui-bundle>=0.0.9,<1.0.0
+
+# Database
+psycopg2-binary>=2.9.6,<3.0.0
+
+# Caching
+redis>=5.0.1,<6.0.0
+
+# OpenTelemetry
+django-opentelemetry>=0.2.0,<1.0.0
+opentelemetry-instrumentation-redis>=0.42b0,<0.43b0
+opentelemetry-instrumentation-psycopg2>=0.42b0,<0.43b0
+opentelemetry-instrumentation-requests>=0.42b0,<0.43b0
+
+# Structured Logging
+structlog>=22.3.0,<23.0.0
+structlog-stdlib>=23.1.0,<24.0.0
 
 # Utilities
 python-dotenv>=1.0.0,<2.0.0
@@ -26,8 +66,3 @@ pyyaml>=6.0.1,<7.0.0
 # Optional Features
 psutil>=5.9.6,<6.0.0
 boto3>=1.29.0,<2.0.0
-
-# Type Checking
-types-requests>=2.31.0,<3.0.0
-types-python-dateutil>=2.8.2,<3.0.0
-types-pyyaml>=6.0.1,<7.0.0

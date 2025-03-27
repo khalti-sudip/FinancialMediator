@@ -95,6 +95,208 @@ FinancialMediator is a robust financial services middleware platform that acts a
    - OpenTelemetry for monitoring
    - CI/CD pipeline integration
 
+## Environment and Configuration Management
+
+### Environment Variables
+
+The application uses `django-environ` for environment variable management. All sensitive configurations should be stored in environment variables.
+
+#### Required Environment Variables
+
+```bash
+# Core Django
+SECRET_KEY=your-secret-key
+DEBUG=0
+ALLOWED_HOSTS=your-hosts
+
+# Database
+DATABASE_URL=postgresql://user:password@host:port/dbname
+
+# Redis
+REDIS_URL=redis://user:password@host:port/db
+
+# Celery
+CELERY_BROKER_URL=redis://user:password@host:port/db
+CELERY_RESULT_BACKEND=redis://user:password@host:port/db
+
+# JWT
+JWT_SECRET_KEY=your-jwt-secret
+JWT_EXPIRE_MINUTES=30
+JWT_REFRESH_DAYS=7
+
+# OpenTelemetry
+OTEL_SERVICE_NAME=financialmediator
+OTEL_EXPORTER_OTLP_ENDPOINT=your-otlp-endpoint
+OTEL_EXPORTER_OTLP_INSECURE=true
+
+# Security
+SECURE_SSL_REDIRECT=1
+SESSION_COOKIE_SECURE=1
+CSRF_COOKIE_SECURE=1
+```
+
+### Configuration Files
+
+The application uses separate configuration files for different environments:
+
+- `financialmediator/settings/base.py`: Base settings common to all environments
+- `financialmediator/settings/development.py`: Development-specific settings
+- `financialmediator/settings/production.py`: Production-specific settings
+
+### Environment-Specific Settings
+
+#### Development
+
+- Debug mode enabled
+- Local database and Redis configurations
+- Console email backend
+- Debug toolbar enabled
+- CORS allowed for development
+
+#### Production
+
+- Debug mode disabled
+- Secure SSL/TLS settings
+- Production database and Redis configurations
+- SMTP email backend
+- Strict CORS settings
+- Enhanced security headers
+
+## Docker and Kubernetes Deployment
+
+### Docker Build
+
+The application uses a multi-stage Docker build for optimization:
+
+```bash
+docker build -t financialmediator:latest .
+```
+
+### Kubernetes Deployment
+
+The Kubernetes deployment includes:
+
+1. **Application Deployment**
+   - 3 replicas for high availability
+   - Resource limits and requests
+   - Health checks (liveness, readiness, startup)
+   - Volume mounts for logs
+   - Environment configuration via ConfigMap and Secret
+
+2. **Configuration Management**
+   - ConfigMap for non-sensitive settings
+   - Secret for sensitive values
+   - Environment-specific configurations
+
+3. **Monitoring and Logging**
+   - OpenTelemetry integration
+   - ServiceMonitor for Prometheus
+   - Structured logging
+   - Health check endpoints
+
+### Kubernetes Manifests
+
+The following Kubernetes manifests are available:
+
+- `k8s/deployments/app-deployment.yaml`: Application deployment
+- `k8s/configmaps/app-config.yaml`: Configuration settings
+- `k8s/secrets/app-secrets.yaml`: Sensitive values
+- `k8s/monitoring/service-monitor.yaml`: Monitoring configuration
+
+### Deployment Process
+
+```bash
+# Create namespace
+kubectl create namespace financialmediator
+
+# Deploy secrets
+kubectl apply -f k8s/secrets/app-secrets.yaml
+
+# Deploy configmap
+kubectl apply -f k8s/configmaps/app-config.yaml
+
+# Deploy application
+kubectl apply -f k8s/deployments/app-deployment.yaml
+
+# Deploy monitoring
+kubectl apply -f k8s/monitoring/service-monitor.yaml
+```
+
+### Health Checks
+
+The application includes three types of health checks:
+
+1. **Liveness Probe**
+   - Checks if the application is running
+   - Path: `/health/`
+   - Initial delay: 30s
+   - Period: 10s
+   - Timeout: 5s
+
+2. **Readiness Probe**
+   - Checks if the application is ready to serve traffic
+   - Path: `/health/`
+   - Initial delay: 5s
+   - Period: 10s
+   - Timeout: 5s
+
+3. **Startup Probe**
+   - Checks if the application has started successfully
+   - Path: `/health/`
+   - Initial delay: 0s
+   - Period: 10s
+   - Timeout: 10s
+
+### Monitoring
+
+The application uses OpenTelemetry for monitoring:
+
+- Distributed tracing
+- Metrics collection
+- Log correlation
+- Performance monitoring
+
+The ServiceMonitor is configured to:
+- Scrape metrics every 30 seconds
+- Check health endpoints
+- Use HTTP scheme
+- Include proper timeouts
+
+### Logging
+
+The application uses structured logging with:
+
+- JSON format
+- Contextual information
+- Correlation IDs
+- Severity levels
+- Request/response tracking
+
+### Security
+
+The deployment includes several security measures:
+
+1. **Environment Variables**
+   - Sensitive values in Secrets
+   - ConfigMap for non-sensitive settings
+   - Proper permissions
+
+2. **Network Security**
+   - SSL/TLS enabled
+   - Secure cookies
+   - CSRF protection
+   - CORS configuration
+
+3. **Resource Limits**
+   - CPU and memory limits
+   - Request quotas
+   - Rate limiting
+
+4. **Health Monitoring**
+   - Regular health checks
+   - Automatic recovery
+   - Performance monitoring
+
 ## Getting Started
 
 ### Prerequisites

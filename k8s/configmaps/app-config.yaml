@@ -69,3 +69,54 @@ data:
     cheaper = 2
     cheaper-initial = 4
     cheaper-step = 1
+  financialmediator-config: |
+    # Django settings
+    DJANGO_SETTINGS_MODULE: financialmediator.settings.production
+    ALLOWED_HOSTS: "*"
+    
+    # Database settings
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/financialmediator
+    
+    # Redis settings
+    REDIS_URL: redis://redis:6379/0
+    
+    # Celery settings
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/1
+    
+    # JWT settings
+    JWT_SECRET_KEY: your-secret-key
+    JWT_EXPIRE_MINUTES: "30"
+    JWT_REFRESH_DAYS: "7"
+    
+    # OpenTelemetry settings
+    OTEL_SERVICE_NAME: financialmediator
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    OTEL_EXPORTER_OTLP_INSECURE: "true"
+    
+    # Logging settings
+    LOG_LEVEL: INFO
+    
+    # Security settings
+    SECURE_SSL_REDIRECT: "true"
+    SESSION_COOKIE_SECURE: "true"
+    CSRF_COOKIE_SECURE: "true"
+    
+    # Email settings
+    EMAIL_HOST: smtp.example.com
+    EMAIL_PORT: "587"
+    EMAIL_USE_TLS: "true"
+    DEFAULT_FROM_EMAIL: noreply@example.com
+    
+    # CORS settings
+    CORS_ORIGIN_WHITELIST: "['http://localhost:3000', 'https://example.com']"
+    
+    # Rate limiting settings
+    RATE_LIMIT_REQUESTS: "100"
+    RATE_LIMIT_DURATION: "60"
+    RATE_LIMIT_BUCKET_SIZE: "1000"
+    
+    # Health check settings
+    HEALTH_CHECK_TIMEOUT: "30"
+    HEALTH_CHECK_INTERVAL: "10"
+    HEALTH_CHECK_FAILURE_THRESHOLD: "3"

@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: financialmediator-monitor
+  labels:
+    app: financialmediator
+spec:
+  selector:
+    matchLabels:
+      app: financialmediator
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+    scrapeTimeout: 10s
+    scheme: http
+  - port: http
+    interval: 30s
+    path: /health/
+    scrapeTimeout: 10s
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - default
+  jobLabel: financialmediator-job

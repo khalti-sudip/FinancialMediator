@@ -5,6 +5,7 @@
 
 # Core Django
 Django>=4.2.0,<5.0.0
+django-environ>=0.10.0,<0.11.0
 
 # REST Framework and API
 djangorestframework>=3.14.0,<4.0.0
