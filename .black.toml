@@ -1,0 +1,22 @@
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+)/'''
+
+target-version = ['py39']
+py36 = true
+pyi = true
+
+[tool.black.isort]
+known_first_party = ['financialmediator']
