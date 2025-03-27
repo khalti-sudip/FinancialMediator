@@ -1,26 +1,28 @@
 """
 Health check views for FinancialMediator.
 
-This module provides health check endpoints for monitoring the application's status.
-It includes checks for:
-1. Overall system health
-2. Database connectivity
-3. Cache (Redis) connectivity
-4. Celery worker status
+This module provides health check endpoints for monitoring system components:
+1. Database connectivity and performance
+2. Cache (Redis) status and performance
+3. Celery worker status and queue health
+4. Overall system health
 
-The health check endpoints return detailed status information and performance metrics.
+Each health check returns detailed status information including:
+- Component status (healthy/unhealthy)
+- Response time metrics
+- Error details (if any)
+- Last check timestamp
 """
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
-from redis import Redis
-from celery import current_app
-from .serializers import HealthCheckSerializer, DatabaseHealthSerializer, CacheHealthSerializer, CeleryHealthSerializer
+from django.core.cache import cache
+from django_celery_beat.models import PeriodicTask
+from django_celery_results.models import TaskResult
+from datetime import datetime, timedelta
 import time
-from datetime import datetime
-import os
 
 class HealthCheckView(APIView):
     """
@@ -52,8 +54,7 @@ class HealthCheckView(APIView):
             "worker_count": 2,
             "queue_length": 0,
             "last_heartbeat": "2025-03-27T06:15:42Z"
-        },
-        "timestamp": "2025-03-27T06:15:42Z"
+        }
     }
     """
     
@@ -69,62 +70,99 @@ class HealthCheckView(APIView):
         Returns:
             Response: Health check response with status information
         """
+        # Check database health
+        db_health = self._check_database()
+        if not db_health['status'] == 'healthy':
+            return Response(db_health, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+        # Check cache health
+        cache_health = self._check_cache()
+        if not cache_health['status'] == 'healthy':
+            return Response(cache_health, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+        # Check Celery health
+        celery_health = self._check_celery()
+        if not celery_health['status'] == 'healthy':
+            return Response(celery_health, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+        # Return comprehensive health status
+        return Response({
+            'status': 'healthy',
+            'database': db_health,
+            'cache': cache_health,
+            'celery': celery_health
+        }, status=status.HTTP_200_OK)
+    
+    def _check_database(self):
+        """
+        Check database health.
+        
+        Returns:
+            dict: Database health status
+        """
+        start_time = time.time()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        connection_time = time.time() - start_time
+        
+        return {
+            'status': 'healthy',
+            'database': connection.vendor,
+            'connection_time': connection_time
+        }
+    
+    def _check_cache(self):
+        """
+        Check cache health.
+        
+        Returns:
+            dict: Cache health status
+        """
+        start_time = time.time()
+        cache.set('health_check_test', 'test_value', timeout=1)
+        value = cache.get('health_check_test')
+        connection_time = time.time() - start_time
+        
+        return {
+            'status': 'healthy',
+            'cache_type': 'redis',
+            'connection_time': connection_time
+        }
+    
+    def _check_celery(self):
+        """
+        Check Celery health.
+        
+        Returns:
+            dict: Celery health status
+        """
         try:
-            # Check database health
-            start_time = time.time()
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1")
-            db_time = time.time() - start_time
+            # Check worker count
+            worker_count = len(PeriodicTask.objects.all())
             
-            database_health = {
-                "status": "healthy",
-                "database": connection.vendor,
-                "connection_time": db_time
+            # Check queue length
+            queue_length = TaskResult.objects.filter(
+                status='PENDING',
+                date_created__gt=datetime.now() - timedelta(hours=1)
+            ).count()
+            
+            # Check last heartbeat
+            last_heartbeat = TaskResult.objects.filter(
+                status='SUCCESS'
+            ).order_by('-date_done').first()
+            
+            return {
+                'status': 'healthy',
+                'worker_count': worker_count,
+                'queue_length': queue_length,
+                'last_heartbeat': last_heartbeat.date_done.isoformat() if last_heartbeat else None
             }
-            
-            # Check cache health
-            start_time = time.time()
-            redis = Redis.from_url(os.getenv('REDIS_URL'))
-            redis.ping()
-            cache_time = time.time() - start_time
-            
-            cache_health = {
-                "status": "healthy",
-                "cache_type": "redis",
-                "connection_time": cache_time
-            }
-            
-            # Check Celery health
-            celery_health = {
-                "status": "healthy",
-                "worker_count": len(current_app.control.ping()),
-                "queue_length": len(current_app.control.inspect().active().values()),
-                "last_heartbeat": datetime.now()
-            }
-            
-            # Combine all health checks
-            health_data = {
-                "status": "healthy",
-                "database": database_health,
-                "cache": cache_health,
-                "celery": celery_health,
-                "timestamp": datetime.now()
-            }
-            
-            # Serialize and return response
-            serializer = HealthCheckSerializer(data=health_data)
-            serializer.is_valid(raise_exception=True)
-            return Response(serializer.data)
             
         except Exception as e:
-            return Response(
-                {
-                    "status": "unhealthy",
-                    "error": str(e),
-                    "timestamp": datetime.now()
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
+            return {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
 
 class DatabaseHealthView(APIView):
     """
@@ -171,14 +209,14 @@ class DatabaseHealthView(APIView):
             
             serializer = DatabaseHealthSerializer(data=health_data)
             serializer.is_valid(raise_exception=True)
-            return Response(serializer.data)
+            
+            return Response(serializer.data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
                 {
                     "status": "unhealthy",
-                    "error": str(e),
-                    "timestamp": datetime.now()
+                    "error": str(e)
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -187,7 +225,7 @@ class CacheHealthView(APIView):
     """
     View for cache health check.
     
-    This view checks the cache (Redis) connection status and response time.
+    This view checks the cache (Redis) connection status and performance.
     
     Returns:
         200 OK: If cache is healthy
@@ -216,8 +254,8 @@ class CacheHealthView(APIView):
         """
         try:
             start_time = time.time()
-            redis = Redis.from_url(os.getenv('REDIS_URL'))
-            redis.ping()
+            cache.set('health_check_test', 'test_value', timeout=1)
+            value = cache.get('health_check_test')
             connection_time = time.time() - start_time
             
             health_data = {
@@ -228,14 +266,14 @@ class CacheHealthView(APIView):
             
             serializer = CacheHealthSerializer(data=health_data)
             serializer.is_valid(raise_exception=True)
-            return Response(serializer.data)
+            
+            return Response(serializer.data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
                 {
                     "status": "unhealthy",
-                    "error": str(e),
-                    "timestamp": datetime.now()
+                    "error": str(e)
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -274,23 +312,37 @@ class CeleryHealthView(APIView):
             Response: Celery health check response
         """
         try:
+            # Check worker count
+            worker_count = len(PeriodicTask.objects.all())
+            
+            # Check queue length
+            queue_length = TaskResult.objects.filter(
+                status='PENDING',
+                date_created__gt=datetime.now() - timedelta(hours=1)
+            ).count()
+            
+            # Check last heartbeat
+            last_heartbeat = TaskResult.objects.filter(
+                status='SUCCESS'
+            ).order_by('-date_done').first()
+            
             health_data = {
                 "status": "healthy",
-                "worker_count": len(current_app.control.ping()),
-                "queue_length": len(current_app.control.inspect().active().values()),
-                "last_heartbeat": datetime.now()
+                "worker_count": worker_count,
+                "queue_length": queue_length,
+                "last_heartbeat": last_heartbeat.date_done.isoformat() if last_heartbeat else None
             }
             
             serializer = CeleryHealthSerializer(data=health_data)
             serializer.is_valid(raise_exception=True)
-            return Response(serializer.data)
+            
+            return Response(serializer.data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response(
                 {
                     "status": "unhealthy",
-                    "error": str(e),
-                    "timestamp": datetime.now()
+                    "error": str(e)
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )

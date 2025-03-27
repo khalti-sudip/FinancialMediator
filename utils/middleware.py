@@ -1,3 +1,21 @@
+"""
+Middleware utilities for FinancialMediator.
+
+This module provides various middleware components for:
+1. Request logging and monitoring
+2. Rate limiting and throttling
+3. Security and authentication
+4. Performance monitoring
+5. Error handling
+
+Key Features:
+- Comprehensive request logging
+- Rate limiting with configurable thresholds
+- Security headers and protection
+- Performance metrics collection
+- Error tracking and reporting
+"""
+
 import uuid
 from functools import wraps
 from flask import g, request, current_app
@@ -11,6 +29,16 @@ def request_id_middleware():
     """
     Middleware to assign a unique ID to each request for tracking.
     This ID is stored in Flask's g object and can be accessed throughout the request.
+
+    Usage:
+    ```python
+    # Add to MIDDLEWARE in settings.py
+    MIDDLEWARE = [
+        ...
+        'utils.middleware.request_id_middleware',
+        ...
+    ]
+    ```
     """
 
     def middleware(f):
@@ -33,6 +61,23 @@ def request_id_middleware():
 def request_logger_middleware():
     """
     Middleware to log details about each request including path, method, and timing.
+
+    Logs:
+    - Request method and path
+    - Response status code
+    - Processing time
+    - User information (if authenticated)
+    - Request headers and body (configurable)
+
+    Usage:
+    ```python
+    # Add to MIDDLEWARE in settings.py
+    MIDDLEWARE = [
+        ...
+        'utils.middleware.request_logger_middleware',
+        ...
+    ]
+    ```
     """
 
     def middleware(f):
