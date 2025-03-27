@@ -60,6 +60,22 @@ class User(AbstractUser):
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     last_login_device = models.CharField(max_length=100, blank=True)
     
+    # Override the default related_names to avoid conflicts
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='banking_users',
+        blank=True,
+        verbose_name='groups',
+        help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='banking_users',
+        blank=True,
+        verbose_name='user permissions',
+        help_text='Specific permissions for this user.',
+    )
+    
     class Meta:
         """Model metadata."""
         indexes = [
