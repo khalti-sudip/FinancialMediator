@@ -8,7 +8,7 @@
 # 
 # Key Features:
 # - Multi-stage build for smaller image size
-# - Production-ready configuration
+# - Production-ready configuration with uWSGI
 # - Security best practices
 # - Performance optimizations
 
@@ -45,6 +45,9 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
+# Create log directory
+RUN mkdir -p /var/log/uwsgi
+
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
@@ -59,6 +62,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Expose ports
 EXPOSE 8000
+EXPOSE 9191 # uWSGI stats port
 
 # Command to run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["uwsgi", "--ini", "uwsgi.ini"]

@@ -36,5 +36,8 @@ django-ratelimit==4.1.0
 cryptography==41.0.7
 sentry-sdk==1.39.1
 
+# WSGI Server for Production
+uwsgi>=2.0.21,<3.0.0
+
 # Development and Testing
 -r requirements-dev.txt
