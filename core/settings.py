@@ -100,10 +100,27 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3'),
-        conn_max_age=600,
-        conn_health_checks=True,
+        conn_max_age=600,  # Keep connections open for 10 minutes
+        conn_health_checks=True,  # Enable health checks
+        options={
+            'sslmode': 'require',
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+        }
     )
 }
+
+# Database connection pooling
+DATABASES['default']['OPTIONS']['pool_size'] = 10  # Maximum number of connections
+DATABASES['default']['OPTIONS']['max_overflow'] = 20  # Maximum overflow connections
+DATABASES['default']['OPTIONS']['pool_timeout'] = 30  # Connection timeout
+DATABASES['default']['OPTIONS']['pool_recycle'] = 3600  # Recycle connections after 1 hour
+
+# Query optimization
+DATABASES['default']['OPTIONS']['use_native_hstore'] = True
+DATABASES['default']['OPTIONS']['use_tz'] = True
 
 # Caching
 CACHES = {
