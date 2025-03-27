@@ -3,18 +3,20 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
-import requests
-
 from banking_api.models.system_config import SystemConfig
 from banking_api.models.audit_log import AuditLog
 from banking_api.serializers.system_config_serializer import SystemConfigSerializer
-
+from banking_api.services.system_config_service import SystemConfigService
+from banking_api.services.audit_log_service import AuditLogService
+from banking_api.exceptions import SystemConfigError
 
 class SystemConfigViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing system configurations.
+    
+    This viewset handles all system configuration operations using the SystemConfigService.
     """
-
+    
     queryset = SystemConfig.objects.all()
     serializer_class = SystemConfigSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -27,154 +29,153 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     search_fields = ["system_name", "base_url"]
     ordering_fields = ["id", "system_name", "created_at", "updated_at"]
     ordering = ["-created_at"]
-
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.system_config_service = SystemConfigService()
+        self.audit_log_service = AuditLogService()
+    
     def perform_create(self, serializer):
-        """Create a new system configuration and log the action"""
-        system_config = serializer.save()
-
-        # Log system config creation
-        AuditLog.log_action(
-            action="create",
-            resource_type="system_config",
-            resource_id=str(system_config.id),
-            user=self.request.user,
-            ip_address=self._get_client_ip(self.request),
-        )
-
-    def perform_update(self, serializer):
-        """Update a system configuration and log the action"""
-        system_config = serializer.save()
-
-        # Log system config update
-        AuditLog.log_action(
-            action="update",
-            resource_type="system_config",
-            resource_id=str(system_config.id),
-            user=self.request.user,
-            ip_address=self._get_client_ip(self.request),
-        )
-
-    def perform_destroy(self, instance):
-        """Delete a system configuration and log the action"""
-        system_config_id = instance.id
-
-        # Log system config deletion
-        AuditLog.log_action(
-            action="delete",
-            resource_type="system_config",
-            resource_id=str(system_config_id),
-            user=self.request.user,
-            ip_address=self._get_client_ip(self.request),
-        )
-
-        instance.delete()
-
-    @action(detail=True, methods=["post"])
-    def test_connection(self, request, pk=None):
         """
-        Test the connection to the configured system
+        Create a new system configuration and log the action
+        
+        Uses the SystemConfigService to handle configuration creation.
         """
-        system_config = self.get_object()
-
-        # Get the test endpoint from request data or use default
-        test_endpoint = request.data.get("test_endpoint", "/status")
-        timeout = system_config.timeout
-
         try:
-            # Prepare URL and headers
-            url = f"{system_config.base_url.rstrip('/')}{test_endpoint}"
-            headers = system_config.get_auth_headers()
-
-            # Make a request to the system
-            response = requests.get(url, headers=headers, timeout=timeout)
-
-            # Log the test action
-            AuditLog.log_action(
-                action="api_request",
-                resource_type="system_config",
-                resource_id=str(system_config.id),
-                user=request.user,
-                details=f"Test connection: {response.status_code}",
-                ip_address=self._get_client_ip(request),
+            system_config = self.system_config_service.set_config(
+                key=serializer.validated_data["key"],
+                value=serializer.validated_data["value"],
+                description=serializer.validated_data.get("description", "")
             )
-
-            # Return the result
-            if response.status_code < 400:
-                return Response(
-                    {
-                        "success": True,
-                        "status_code": response.status_code,
-                        "message": "Connection successful",
-                        "data": response.json() if self._is_json(response) else None,
-                    }
-                )
-            else:
-                return Response(
-                    {
-                        "success": False,
-                        "status_code": response.status_code,
-                        "message": "Connection failed with HTTP error",
-                        "data": response.json() if self._is_json(response) else None,
-                    },
-                    status=status.HTTP_200_OK,
-                )  # Return 200 even for failed connections
-
-        except requests.exceptions.Timeout:
-            return Response(
-                {
-                    "success": False,
-                    "message": f"Connection timed out after {timeout} seconds",
+            
+            # Log system config creation
+            self.audit_log_service.create_audit_log(
+                user_id=self.request.user.id,
+                action="SYSTEM_CONFIG_CREATE",
+                details={
+                    "config_id": str(system_config.id),
+                    "key": system_config.key,
+                    "value": system_config.value,
+                    "description": system_config.description
                 },
-                status=status.HTTP_200_OK,
+                ip_address=self._get_client_ip(self.request),
+                user_agent=self.request.META.get('HTTP_USER_AGENT')
             )
-
-        except requests.exceptions.RequestException as e:
+            
+            return system_config
+        except SystemConfigError as e:
+            raise serializers.ValidationError(str(e))
+    
+    def perform_update(self, serializer):
+        """
+        Update a system configuration and log the action
+        
+        Uses the SystemConfigService to handle configuration updates.
+        """
+        try:
+            system_config = serializer.save()
+            
+            # Update using service
+            self.system_config_service.set_config(
+                key=system_config.key,
+                value=serializer.validated_data["value"],
+                description=serializer.validated_data.get("description", "")
+            )
+            
+            # Log system config update
+            self.audit_log_service.create_audit_log(
+                user_id=self.request.user.id,
+                action="SYSTEM_CONFIG_UPDATE",
+                details={
+                    "config_id": str(system_config.id),
+                    "key": system_config.key,
+                    "value": system_config.value,
+                    "description": system_config.description
+                },
+                ip_address=self._get_client_ip(self.request),
+                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            )
+            
+            return system_config
+        except SystemConfigError as e:
+            raise serializers.ValidationError(str(e))
+    
+    def perform_destroy(self, instance):
+        """
+        Delete a system configuration and log the action
+        
+        Uses the SystemConfigService to handle configuration deletion.
+        """
+        try:
+            # Delete using service
+            self.system_config_service.delete_config(instance.key)
+            
+            # Log system config deletion
+            self.audit_log_service.create_audit_log(
+                user_id=self.request.user.id,
+                action="SYSTEM_CONFIG_DELETE",
+                details={
+                    "config_id": str(instance.id),
+                    "key": instance.key,
+                    "value": instance.value,
+                    "description": instance.description
+                },
+                ip_address=self._get_client_ip(self.request),
+                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            )
+        except SystemConfigError as e:
+            raise serializers.ValidationError(str(e))
+    
+    @action(detail=False, methods=['get'])
+    def get_config(self, request):
+        """
+        Get a specific system configuration by key
+        
+        Returns the configuration value if found.
+        """
+        key = request.query_params.get('key')
+        if not key:
             return Response(
-                {"success": False, "message": f"Connection error: {str(e)}"},
-                status=status.HTTP_200_OK,
+                {"error": "Key is required"},
+                status=status.HTTP_400_BAD_REQUEST
             )
-
-    @action(detail=True, methods=["post"])
-    def toggle_active(self, request, pk=None):
+        
+        try:
+            config = self.system_config_service.get_config(key)
+            if not config:
+                return Response(
+                    {"error": f"Configuration {key} not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            return Response(config)
+        except SystemConfigError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=False, methods=['get'])
+    def get_all_configs(self, request):
         """
-        Toggle the active status of a system configuration
+        Get all system configurations
+        
+        Returns a dictionary of all configurations.
         """
-        system_config = self.get_object()
-
-        # Toggle is_active
-        system_config.is_active = not system_config.is_active
-        system_config.save()
-
-        action_details = (
-            f"System config {'activated' if system_config.is_active else 'deactivated'}"
-        )
-
-        # Log status change
-        AuditLog.log_action(
-            action="update",
-            resource_type="system_config",
-            resource_id=str(system_config.id),
-            user=request.user,
-            details=action_details,
-            ip_address=self._get_client_ip(request),
-        )
-
-        serializer = self.get_serializer(system_config)
-        return Response(serializer.data)
-
+        try:
+            configs = self.system_config_service.get_all_configs()
+            return Response(configs)
+        except SystemConfigError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
     def _get_client_ip(self, request):
         """Get the client IP address from request"""
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
-            ip = x_forwarded_for.split(",")[0]
+            ip = x_forwarded_for.split(',')[0]
         else:
-            ip = request.META.get("REMOTE_ADDR")
+            ip = request.META.get('REMOTE_ADDR')
         return ip
-
-    def _is_json(self, response):
-        """Check if the response is JSON"""
-        try:
-            response.json()
-            return True
-        except ValueError:
-            return False
