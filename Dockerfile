@@ -62,7 +62,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Expose ports
 EXPOSE 8000
-EXPOSE 9191 # uWSGI stats port
+EXPOSE 9191
 
 # Command to run the application
 CMD ["uwsgi", "--ini", "uwsgi.ini"]
