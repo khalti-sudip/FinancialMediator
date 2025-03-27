@@ -2,108 +2,98 @@
 
 A scalable, microservices-based financial management platform built with Django, designed for high availability, rate limiting, and comprehensive monitoring.
 
-## Architecture Overview
+## Overview
 
-### System Architecture
+FinancialMediator is a robust financial services middleware platform that acts as a bridge between financial institutions, payment gateways, and banking systems. It provides a unified API interface for various financial operations while handling complex integration, rate limiting, and monitoring requirements.
 
-FinancialMediator is built as a microservices architecture with the following key components:
+## Core Features
 
-```
-FinancialMediator
-├── API Gateway
-│   ├── Rate Limiter
-│   ├── Authentication
-│   └── Request Router
-├── Core Services
-│   ├── Financial Services
-│   │   ├── Bank Integration
-│   │   ├── Digital Wallet
-│   │   └── Payment Processing
-│   ├── KYC Service
-│   │   ├── Document Verification
-│   │   ├── Face Verification
-│   │   └── Background Check
-│   └── Health Monitoring
-├── Data Layer
-│   ├── PostgreSQL (Primary Database)
-│   └── Redis (Cache & Message Queue)
-└── Infrastructure
-    ├── Kubernetes Cluster
-    ├── OpenTelemetry Collector
-    └── Celery Task Queue
-```
+### Financial Operations
 
-### Key Features
+1. **Transaction Processing**
+   - Real-time transaction processing
+   - Multi-currency support
+   - Transaction validation and verification
+   - Audit logging for all operations
 
-1. **Microservices Architecture**
-   - Independent services for financial operations, KYC, and monitoring
-   - Each service can scale independently based on demand
-   - Clear separation of concerns and responsibilities
+2. **Provider Integration**
+   - Modular provider system
+   - Support for multiple financial institutions
+   - Dynamic configuration management
+   - Provider-specific rate limiting
 
-2. **Security & Rate Limiting**
-   - Global rate limiting middleware using Redis
-   - View-specific rate limiting decorators
-   - Request bucketing for high traffic scenarios
-   - Security headers and authentication
+3. **KYC Management**
+   - Comprehensive KYC verification
+   - Document validation
+   - Face verification integration
+   - Compliance tracking
 
-3. **Monitoring & Observability**
-   - OpenTelemetry integration for tracing and metrics
-   - Comprehensive health check system
-   - Real-time monitoring of services and infrastructure
-   - Distributed tracing across microservices
+### Security & Compliance
 
-4. **Scalability & Performance**
-   - Async task processing with Celery
-   - Redis-based caching for improved performance
-   - Load balancing and auto-scaling
-   - Database connection pooling
+1. **Rate Limiting**
+   - Global rate limiting using Redis
+   - Per-user rate limiting
+   - View-specific rate limiting
+   - Request bucketing for high traffic
 
-5. **Provider Integration**
-   - Modular provider system for financial institutions
-   - Independent KYC service for verification
-   - Provider-specific configuration and requirements
-   - Status tracking and reporting
+2. **Authentication & Authorization**
+   - JWT-based authentication
+   - Role-based access control
+   - API key management
+   - Secure session handling
 
-## Technical Stack
-
-### Backend
-- **Framework**: Django 4.2
-- **Database**: PostgreSQL 14
-- **Cache**: Redis 6
-- **Message Queue**: Celery with Redis
-- **API**: Django REST Framework
-- **Authentication**: JWT
-- **Rate Limiting**: Redis-based sliding window algorithm
+3. **Data Protection**
+   - End-to-end encryption
+   - Secure storage of sensitive data
+   - Audit logging of all operations
+   - Compliance with financial regulations
 
 ### Monitoring & Observability
-- **Tracing**: OpenTelemetry
-- **Metrics**: Prometheus
-- **Logging**: ELK Stack
-- **Health Checks**: Custom health monitoring system
 
-### Infrastructure
-- **Container Orchestration**: Kubernetes
-- **Container Runtime**: Docker
-- **CI/CD**: GitHub Actions
-- **Infrastructure as Code**: Terraform
-- **Secret Management**: HashiCorp Vault
+1. **Health Monitoring**
+   - Real-time system health checks
+   - Database connectivity monitoring
+   - Cache performance tracking
+   - Celery worker status monitoring
 
-## Deployment Architecture
+2. **Performance Metrics**
+   - Request response time tracking
+   - Database query optimization
+   - Cache hit/miss ratios
+   - Resource utilization monitoring
 
-```
-Kubernetes Cluster
-├── Namespaces
-│   ├── financial-mediator
-│   │   ├── Django Application
-│   │   ├── Redis
-│   │   ├── PostgreSQL
-│   │   ├── Celery Workers
-│   │   └── OpenTelemetry Collector
-│   └── monitoring
-├── Ingress Controllers
-├── Load Balancers
-└── Service Discovery
-```
+3. **Logging & Tracing**
+   - Distributed tracing with OpenTelemetry
+   - Comprehensive logging system
+   - Error tracking and reporting
+   - Performance profiling
+
+## Technical Architecture
+
+### Core Components
+
+1. **API Gateway**
+   - Rate limiting middleware
+   - Authentication handling
+   - Request routing
+   - Response transformation
+
+2. **Service Layer**
+   - Transaction processing
+   - Provider integration
+   - KYC verification
+   - Health monitoring
+
+3. **Data Layer**
+   - PostgreSQL for primary storage
+   - Redis for caching and queueing
+   - Connection pooling for performance
+
+4. **Infrastructure**
+   - Docker containerization
+   - Kubernetes orchestration
+   - OpenTelemetry for monitoring
+   - CI/CD pipeline integration
 
 ## Getting Started
 
