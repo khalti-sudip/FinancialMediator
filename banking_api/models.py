@@ -30,6 +30,7 @@ class User(AbstractUser):
     - Account balance
     - Transaction limits
     - KYC status
+    - Soft deletion support
     """
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -54,15 +55,31 @@ class User(AbstractUser):
         ],
         default='pending'
     )
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    last_login_device = models.CharField(max_length=100, blank=True)
     
     class Meta:
         """Model metadata."""
         indexes = [
             models.Index(fields=['username']),
             models.Index(fields=['email']),
-            models.Index(fields=['kyc_status'])
+            models.Index(fields=['kyc_status']),
+            models.Index(fields=['is_deleted']),
+            models.Index(fields=['last_login_ip']),
         ]
-    
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(balance__gte=0),
+                name='balance_non_negative'
+            ),
+            models.CheckConstraint(
+                check=models.Q(daily_transaction_limit__gte=0),
+                name='limit_non_negative'
+            )
+        ]
+
     def has_sufficient_balance(self, amount: float) -> bool:
         """
         Check if user has sufficient balance for a transaction.
@@ -93,12 +110,6 @@ class ApiKey(models.Model):
     API key model for system authentication.
     
     Stores API keys with associated permissions and usage tracking.
-    
-    Key Features:
-    - Unique API key generation
-    - Expiration management
-    - Rate limiting
-    - Usage tracking
     """
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -111,15 +122,25 @@ class ApiKey(models.Model):
     rate_limit = models.IntegerField(default=1000)
     last_used = models.DateTimeField(null=True, blank=True)
     usage_count = models.IntegerField(default=0)
+    ip_whitelist = models.JSONField(default=list)
+    allowed_methods = models.JSONField(default=list)
     
     class Meta:
         """Model metadata."""
         indexes = [
             models.Index(fields=['key']),
             models.Index(fields=['expires_at']),
-            models.Index(fields=['is_active'])
+            models.Index(fields=['is_active']),
+            models.GinIndex(fields=['ip_whitelist']),
+            models.GinIndex(fields=['allowed_methods'])
         ]
-    
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(rate_limit__gt=0),
+                name='rate_limit_positive'
+            )
+        ]
+
     def is_valid(self) -> bool:
         """
         Check if API key is valid.
@@ -141,12 +162,6 @@ class ApiKey(models.Model):
 class Transaction(models.Model):
     """
     Transaction model for tracking financial transactions.
-    
-    Stores transaction details including:
-    - Transaction metadata
-    - Amount and currency
-    - Status tracking
-    - Request/response data
     """
     
     TRANSACTION_TYPES = [
@@ -179,12 +194,13 @@ class Transaction(models.Model):
     )
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     currency = models.CharField(max_length=3)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
     request_data = models.JSONField()
     response_data = models.JSONField(null=True, blank=True)
     error_message = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         """Model metadata."""
@@ -192,9 +208,18 @@ class Transaction(models.Model):
             models.Index(fields=['transaction_id']),
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
-            models.Index(fields=['user_id'])
+            models.Index(fields=['user_id']),
+            models.Index(fields=['processed_at']),
+            models.Index(fields=['currency']),
+            models.Index(fields=['transaction_type']),
         ]
-    
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(amount__gt=0),
+                name='amount_positive'
+            )
+        ]
+
     def update_status(self, new_status: str, response_data: dict = None) -> None:
         """
         Update transaction status and response data.
@@ -208,31 +233,47 @@ class Transaction(models.Model):
             self.response_data = response_data
         self.save(update_fields=['status', 'response_data', 'updated_at'])
 
+class TransactionLog(models.Model):
+    """
+    Detailed transaction log for audit purposes.
+    """
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name='logs')
+    status = models.CharField(max_length=20, choices=Transaction.STATUS_CHOICES)
+    details = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        """Model metadata."""
+        indexes = [
+            models.Index(fields=['transaction_id']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['status'])
+        ]
+
 class SystemConfig(models.Model):
     """
     System configuration model for storing application settings.
-    
-    Stores key-value pairs for:
-    - API endpoints
-    - Rate limits
-    - Thresholds
-    - Feature flags
     """
     
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     key = models.CharField(max_length=100, unique=True)
     value = models.JSONField()
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    version = models.IntegerField(default=1)
     
     class Meta:
         """Model metadata."""
         indexes = [
             models.Index(fields=['key']),
-            models.Index(fields=['is_active'])
+            models.Index(fields=['is_active']),
+            models.Index(fields=['version'])
         ]
-    
+
     def deactivate(self) -> None:
         """
         Deactivate the configuration setting.
@@ -243,12 +284,6 @@ class SystemConfig(models.Model):
 class AuditLog(models.Model):
     """
     Audit log model for tracking system events.
-    
-    Stores detailed logs of:
-    - User actions
-    - System changes
-    - Security events
-    - Error occurrences
     """
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -256,7 +291,8 @@ class AuditLog(models.Model):
         User,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name='audit_logs'
     )
     action = models.CharField(max_length=100)
     description = models.TextField()
@@ -264,15 +300,27 @@ class AuditLog(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    severity = models.CharField(
+        max_length=20,
+        choices=[
+            ('info', 'Info'),
+            ('warning', 'Warning'),
+            ('error', 'Error'),
+            ('critical', 'Critical')
+        ],
+        default='info'
+    )
     
     class Meta:
         """Model metadata."""
         indexes = [
             models.Index(fields=['user_id']),
             models.Index(fields=['created_at']),
-            models.Index(fields=['action'])
+            models.Index(fields=['action']),
+            models.Index(fields=['severity']),
+            models.GinIndex(fields=['metadata'])
         ]
-    
+
     def log_action(self, action: str, description: str, metadata: dict = None) -> None:
         """
         Log a system action with optional metadata.

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'django_cachalot',
     'guardian',
     'drf_spectacular',
+    'django_extensions',
     
     # Local apps
     'banking_api',
