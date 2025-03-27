@@ -1,3 +1,22 @@
+"""
+OpenTelemetry instrumentation module for FinancialMediator.
+
+This module provides comprehensive OpenTelemetry instrumentation for the application,
+including tracing and metrics collection. It supports:
+
+1. Django request/response tracing
+2. Redis cache operations
+3. PostgreSQL database queries
+4. HTTP requests (using requests library)
+5. Celery task execution
+
+The instrumentation is configured using environment variables:
+- OTEL_SERVICE_NAME: Name of the service (default: financial-mediator)
+- OTEL_SERVICE_VERSION: Version of the service (default: 1.0.0)
+- OTEL_DEPLOYMENT_ENVIRONMENT: Deployment environment (default: production)
+- OTEL_EXPORTER_OTLP_ENDPOINT: Optional OTLP endpoint for exporting traces
+"""
+
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -11,7 +30,20 @@ from opentelemetry.instrumentation.celery import CeleryInstrumentor
 import os
 
 def configure_opentelemetry():
-    """Configure OpenTelemetry for the application."""
+    """
+    Configure OpenTelemetry for the application.
+    
+    This function sets up:
+    1. Tracer provider with resource attributes
+    2. OTLP exporter for trace export
+    3. Instrumentation for all supported components
+    
+    The configuration is controlled by environment variables:
+    - OTEL_SERVICE_NAME: Service name (required)
+    - OTEL_SERVICE_VERSION: Service version (required)
+    - OTEL_DEPLOYMENT_ENVIRONMENT: Deployment environment (required)
+    - OTEL_EXPORTER_OTLP_ENDPOINT: Optional OTLP endpoint URL
+    """
     # Get environment variables
     env = os.environ
     
