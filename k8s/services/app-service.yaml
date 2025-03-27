@@ -7,23 +7,30 @@ metadata:
     app: financialmediator
     role: web
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: financialmediator
     role: web
   ports:
   - name: http
-    port: 8000
+    port: 80
     targetPort: 8000
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
     protocol: TCP
   sessionAffinity: None
   externalTrafficPolicy: Cluster
   healthCheckNodePort: 0
   publishNotReadyAddresses: false
-  selector:
-    app: financialmediator
-    role: web
-  sessionAffinity: None
-  type: ClusterIP
 status:
   loadBalancer: {}

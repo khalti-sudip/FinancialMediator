@@ -20,10 +20,5 @@ spec:
   externalTrafficPolicy: Cluster
   healthCheckNodePort: 0
   publishNotReadyAddresses: false
-  selector:
-    app: redis
-    role: cache
-  sessionAffinity: None
-  type: ClusterIP
 status:
   loadBalancer: {}
