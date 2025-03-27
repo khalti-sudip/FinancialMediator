@@ -1,0 +1,266 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: financialmediator-hpa
+  namespace: default
+  labels:
+    app: financialmediator
+    role: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: financialmediator
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 75
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 4
+        periodSeconds: 60
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests
+      target:
+        type: AverageValue
+        averageValue: 100
+  - type: External
+    external:
+      metric:
+        name: redis_commands
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 500
+  - type: External
+    external:
+      metric:
+        name: postgresql_queries
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000
+  - type: External
+    external:
+      metric:
+        name: celery_tasks
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 50
+  - type: External
+    external:
+      metric:
+        name: request_duration
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000
+  - type: External
+    external:
+      metric:
+        name: error_rate
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 10
+  - type: External
+    external:
+      metric:
+        name: response_size
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000
+  - type: External
+    external:
+      metric:
+        name: cache_hits
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000
+  - type: External
+    external:
+      metric:
+        name: cache_misses
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 100
+  - type: External
+    external:
+      metric:
+        name: system_load
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 100
+  - type: External
+    external:
+      metric:
+        name: process_resident_memory_bytes
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 500000000
+  - type: External
+    external:
+      metric:
+        name: process_cpu_seconds_total
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000000
+  - type: External
+    external:
+      metric:
+        name: process_open_fds
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000
+  - type: External
+    external:
+      metric:
+        name: process_max_fds
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 10000
+  - type: External
+    external:
+      metric:
+        name: process_virtual_memory_bytes
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000000
+  - type: External
+    external:
+      metric:
+        name: process_start_time_seconds
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000000
+  - type: External
+    external:
+      metric:
+        name: process_cpu_seconds_total
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000000
+  - type: External
+    external:
+      metric:
+        name: process_resident_memory_bytes
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 500000000
+  - type: External
+    external:
+      metric:
+        name: process_virtual_memory_bytes
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000000
+  - type: External
+    external:
+      metric:
+        name: process_open_fds
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000
+  - type: External
+    external:
+      metric:
+        name: process_max_fds
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 10000
+  - type: External
+    external:
+      metric:
+        name: process_start_time_seconds
+        selector:
+          matchLabels:
+            app: financialmediator
+      target:
+        type: AverageValue
+        averageValue: 1000000000

@@ -1,0 +1,89 @@
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+(
+  /(
+    \.eggs         # exclude a few common directories in the
+  | \.git         # root of the project
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  )/|
+  \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 100
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "THIRDPARTY",
+    "FIRSTPARTY",
+    "LOCALFOLDER"
+]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test", "test"]
+python_functions = ["test_*"]
+addopts = ["--cov=financialmediator", "--cov-report=term-missing"]
+
+[tool.flake8]
+max-line-length = 100
+ignore = ["E203", "E266", "E501", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "*.egg-info",
+    "build",
+    "dist",
+    "venv"
+]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "W"]
+ignore = ["E203", "E266", "E501", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "*.egg-info",
+    "build",
+    "dist",
+    "venv"
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

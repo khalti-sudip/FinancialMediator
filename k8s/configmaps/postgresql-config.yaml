@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-config
+  namespace: default
+  labels:
+    app: postgresql
+    role: config
+data:
+  POSTGRES_DB: financialmediator
+  POSTGRES_USER: postgres
+  init.sql: |
+    -- Create database if it doesn't exist
+    CREATE DATABASE IF NOT EXISTS financialmediator;
+    
+    -- Create user if it doesn't exist
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_roles WHERE rolname = 'postgres'
+        ) THEN
+            CREATE USER postgres WITH PASSWORD 'postgres';
+        END IF;
+    END
+    $$;
+    
+    -- Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE financialmediator TO postgres;
+    
+    -- Create schema if it doesn't exist
+    CREATE SCHEMA IF NOT EXISTS public;
+    
+    -- Set default schema
+    ALTER DATABASE financialmediator SET search_path TO public;
+    
+    -- Create extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    CREATE EXTENSION IF NOT EXISTS "btree_gin";
+    CREATE EXTENSION IF NOT EXISTS "btree_gist";
+    CREATE EXTENSION IF NOT EXISTS "citext";
+    CREATE EXTENSION IF NOT EXISTS "hstore";
+    CREATE EXTENSION IF NOT EXISTS "postgis";
+    CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+    CREATE EXTENSION IF NOT EXISTS "pgaudit";
+    
+    -- Set parameters
+    ALTER SYSTEM SET shared_buffers = '25%';
+    ALTER SYSTEM SET work_mem = '64MB';
+    ALTER SYSTEM SET maintenance_work_mem = '512MB';
+    ALTER SYSTEM SET effective_cache_size = '75%';
+    ALTER SYSTEM SET max_wal_size = '2GB';
+    ALTER SYSTEM SET min_wal_size = '1GB';
+    ALTER SYSTEM SET checkpoint_completion_target = '0.9';
+    ALTER SYSTEM SET wal_buffers = '16MB';
+    ALTER SYSTEM SET default_statistics_target = '100';
+    ALTER SYSTEM SET random_page_cost = '1.1';
+    ALTER SYSTEM SET effective_io_concurrency = '200';
+    ALTER SYSTEM SET max_connections = '100';
+    ALTER SYSTEM SET max_worker_processes = '8';
+    ALTER SYSTEM SET max_parallel_workers_per_gather = '4';
+    ALTER SYSTEM SET max_parallel_workers = '8';
+    ALTER SYSTEM SET max_parallel_maintenance_workers = '4';
+    ALTER SYSTEM SET max_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_pred_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_prepared_transactions = '0';
+    ALTER SYSTEM SET max_stack_depth = '2MB';
+    ALTER SYSTEM SET max_files_per_process = '1000';
+    ALTER SYSTEM SET max_wal_senders = '10';
+    ALTER SYSTEM SET max_replication_slots = '10';
+    ALTER SYSTEM SET max_logical_replication_workers = '4';
+    ALTER SYSTEM SET max_sync_workers_per_subscription = '2';
+    ALTER SYSTEM SET max_slot_wal_keep_size = '2GB';
+    ALTER SYSTEM SET max_wal_size = '2GB';
+    ALTER SYSTEM SET min_wal_size = '1GB';
+    ALTER SYSTEM SET checkpoint_completion_target = '0.9';
+    ALTER SYSTEM SET wal_buffers = '16MB';
+    ALTER SYSTEM SET default_statistics_target = '100';
+    ALTER SYSTEM SET random_page_cost = '1.1';
+    ALTER SYSTEM SET effective_io_concurrency = '200';
+    ALTER SYSTEM SET max_connections = '100';
+    ALTER SYSTEM SET max_worker_processes = '8';
+    ALTER SYSTEM SET max_parallel_workers_per_gather = '4';
+    ALTER SYSTEM SET max_parallel_workers = '8';
+    ALTER SYSTEM SET max_parallel_maintenance_workers = '4';
+    ALTER SYSTEM SET max_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_pred_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_prepared_transactions = '0';
+    ALTER SYSTEM SET max_stack_depth = '2MB';
+    ALTER SYSTEM SET max_files_per_process = '1000';
+    ALTER SYSTEM SET max_wal_senders = '10';
+    ALTER SYSTEM SET max_replication_slots = '10';
+    ALTER SYSTEM SET max_logical_replication_workers = '4';
+    ALTER SYSTEM SET max_sync_workers_per_subscription = '2';
+    ALTER SYSTEM SET max_slot_wal_keep_size = '2GB';
+    ALTER SYSTEM SET max_wal_size = '2GB';
+    ALTER SYSTEM SET min_wal_size = '1GB';
+    ALTER SYSTEM SET checkpoint_completion_target = '0.9';
+    ALTER SYSTEM SET wal_buffers = '16MB';
+    ALTER SYSTEM SET default_statistics_target = '100';
+    ALTER SYSTEM SET random_page_cost = '1.1';
+    ALTER SYSTEM SET effective_io_concurrency = '200';
+    ALTER SYSTEM SET max_connections = '100';
+    ALTER SYSTEM SET max_worker_processes = '8';
+    ALTER SYSTEM SET max_parallel_workers_per_gather = '4';
+    ALTER SYSTEM SET max_parallel_workers = '8';
+    ALTER SYSTEM SET max_parallel_maintenance_workers = '4';
+    ALTER SYSTEM SET max_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_pred_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_prepared_transactions = '0';
+    ALTER SYSTEM SET max_stack_depth = '2MB';
+    ALTER SYSTEM SET max_files_per_process = '1000';
+    ALTER SYSTEM SET max_wal_senders = '10';
+    ALTER SYSTEM SET max_replication_slots = '10';
+    ALTER SYSTEM SET max_logical_replication_workers = '4';
+    ALTER SYSTEM SET max_sync_workers_per_subscription = '2';
+    ALTER SYSTEM SET max_slot_wal_keep_size = '2GB';
+    ALTER SYSTEM SET max_wal_size = '2GB';
+    ALTER SYSTEM SET min_wal_size = '1GB';
+    ALTER SYSTEM SET checkpoint_completion_target = '0.9';
+    ALTER SYSTEM SET wal_buffers = '16MB';
+    ALTER SYSTEM SET default_statistics_target = '100';
+    ALTER SYSTEM SET random_page_cost = '1.1';
+    ALTER SYSTEM SET effective_io_concurrency = '200';
+    ALTER SYSTEM SET max_connections = '100';
+    ALTER SYSTEM SET max_worker_processes = '8';
+    ALTER SYSTEM SET max_parallel_workers_per_gather = '4';
+    ALTER SYSTEM SET max_parallel_workers = '8';
+    ALTER SYSTEM SET max_parallel_maintenance_workers = '4';
+    ALTER SYSTEM SET max_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_pred_locks_per_transaction = '64';
+    ALTER SYSTEM SET max_prepared_transactions = '0';
+    ALTER SYSTEM SET max_stack_depth = '2MB';
+    ALTER SYSTEM SET max_files_per_process = '1000';
+    ALTER SYSTEM SET max_wal_senders = '10';
+    ALTER SYSTEM SET max_replication_slots = '10';
+    ALTER SYSTEM SET max_logical_replication_workers = '4';
+    ALTER SYSTEM SET max_sync_workers_per_subscription = '2';
+    ALTER SYSTEM SET max_slot_wal_keep_size = '2GB';

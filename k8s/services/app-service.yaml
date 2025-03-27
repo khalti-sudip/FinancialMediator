@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: financialmediator
+  namespace: default
+  labels:
+    app: financialmediator
+    role: web
+spec:
+  type: ClusterIP
+  selector:
+    app: financialmediator
+    role: web
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  healthCheckNodePort: 0
+  publishNotReadyAddresses: false
+  selector:
+    app: financialmediator
+    role: web
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

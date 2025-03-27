@@ -1,340 +1,238 @@
 """
-Utility functions for structured logging using OpenTelemetry.
+Logging utilities for FinancialMediator.
 
-This module provides helper functions to create structured logs with context
-and attributes that can be easily correlated with traces and metrics.
+This module provides structured logging capabilities using OpenTelemetry.
 """
 
+from typing import Any, Dict, Optional, Union, List
 import logging
-import traceback
 from opentelemetry import trace
-from opentelemetry.sdk._logs import LoggerProvider, LogRecord
+from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk._logs.severity import SeverityNumber
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.trace import get_current_span
-from typing import Dict, Any, Optional, Type
-import json
-from datetime import datetime
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.trace.status import StatusCode
 
-# Initialize OpenTelemetry Logger
-resource = Resource(attributes={
-    "service.name": "financialmediator",
-    "service.version": "1.0.0"
-})
+# Initialize OpenTelemetry
+tracer_provider = TracerProvider()
+span_processor = BatchSpanProcessor(OTLPSpanExporter())
+tracer_provider.add_span_processor(span_processor)
+trace.set_tracer_provider(tracer_provider)
 
-logger_provider = LoggerProvider(resource=resource)
-log_processor = BatchLogRecordProcessor()
+logger_provider = LoggerProvider()
+log_processor = BatchLogRecordProcessor(OTLPLogExporter())
 logger_provider.add_log_record_processor(log_processor)
 
-# Get the global tracer
-tracer = trace.get_tracer(__name__)
+# Instrumentation
+LoggingInstrumentor().instrument()
 
-class LogContext:
+class Logger:
     """
-    Context manager for adding context to logs within a block.
+    Structured logger that integrates with OpenTelemetry.
+    
+    Attributes:
+        name: Name of the logger
+        tracer: OpenTelemetry tracer
     """
-    def __init__(self, logger: logging.Logger, context: Dict[str, Any]):
-        self.logger = logger
-        self.context = context
-        self.span = None
+    
+    def __init__(self, name: str):
+        """
+        Initialize a structured logger.
+        
+        Args:
+            name: Name of the logger
+        """
+        self.name = name
+        self.tracer = trace.get_tracer(name)
+        self.logger = logging.getLogger(name)
+        
+    def log(self, level: str, message: str, attributes: Optional[Dict[str, Any]] = None,
+            request_id: Optional[str] = None, user_id: Optional[str] = None,
+            context: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
+        """
+        Log a message with structured attributes.
+        
+        Args:
+            level: Log level (e.g., 'info', 'error')
+            message: Log message
+            attributes: Additional attributes to log
+            request_id: Request ID for correlation
+            user_id: User ID for correlation
+            context: Additional context information
+            **kwargs: Additional keyword arguments
+        """
+        with self.tracer.start_as_current_span(f"log_{level}") as span:
+            span.set_attribute("message", message)
+            
+            if request_id:
+                span.set_attribute("request_id", request_id)
+            if user_id:
+                span.set_attribute("user_id", user_id)
+            
+            if attributes:
+                for key, value in attributes.items():
+                    span.set_attribute(key, value)
+            
+            if context:
+                for key, value in context.items():
+                    span.set_attribute(f"context.{key}", value)
+            
+            if level == 'error':
+                span.set_status(StatusCode.ERROR)
+                
+            self.logger.log(
+                getattr(logging, level.upper()),
+                message,
+                extra={
+                    'attributes': attributes or {},
+                    'request_id': request_id,
+                    'user_id': user_id,
+                    'context': context or {}
+                }
+            )
+    
+    def info(self, message: str, attributes: Optional[Dict[str, Any]] = None,
+             request_id: Optional[str] = None, user_id: Optional[str] = None,
+             context: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
+        """
+        Log an info message.
+        
+        Args:
+            message: Info message
+            attributes: Additional attributes
+            request_id: Request ID
+            user_id: User ID
+            context: Additional context
+            **kwargs: Additional keyword arguments
+        """
+        self.log('info', message, attributes, request_id, user_id, context, **kwargs)
+    
+    def error(self, message: str, attributes: Optional[Dict[str, Any]] = None,
+              request_id: Optional[str] = None, user_id: Optional[str] = None,
+              context: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
+        """
+        Log an error message.
+        
+        Args:
+            message: Error message
+            attributes: Additional attributes
+            request_id: Request ID
+            user_id: User ID
+            context: Additional context
+            **kwargs: Additional keyword arguments
+        """
+        self.log('error', message, attributes, request_id, user_id, context, **kwargs)
+    
+    def warning(self, message: str, attributes: Optional[Dict[str, Any]] = None,
+                request_id: Optional[str] = None, user_id: Optional[str] = None,
+                context: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
+        """
+        Log a warning message.
+        
+        Args:
+            message: Warning message
+            attributes: Additional attributes
+            request_id: Request ID
+            user_id: User ID
+            context: Additional context
+            **kwargs: Additional keyword arguments
+        """
+        self.log('warning', message, attributes, request_id, user_id, context, **kwargs)
+    
+    def debug(self, message: str, attributes: Optional[Dict[str, Any]] = None,
+              request_id: Optional[str] = None, user_id: Optional[str] = None,
+              context: Optional[Dict[str, Any]] = None, **kwargs: Any) -> None:
+        """
+        Log a debug message.
+        
+        Args:
+            message: Debug message
+            attributes: Additional attributes
+            request_id: Request ID
+            user_id: User ID
+            context: Additional context
+            **kwargs: Additional keyword arguments
+        """
+        self.log('debug', message, attributes, request_id, user_id, context, **kwargs)
 
-    def __enter__(self):
-        self.span = tracer.start_as_current_span("log_context")
-        for key, value in self.context.items():
-            self.span.set_attribute(key, value)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type:
-            self.span.set_attribute("exception.type", str(exc_type))
-            self.span.set_attribute("exception.message", str(exc_val))
-        self.span.end()
-
-def get_logger(name: str) -> logging.Logger:
+def get_logger(name: str) -> Logger:
     """
-    Get a logger with OpenTelemetry integration.
+    Get a structured logger instance.
     
     Args:
         name: Name of the logger
-    
+        
     Returns:
-        A logger instance configured with OpenTelemetry
+        Logger instance
     """
-    logger = logging.getLogger(name)
-    
-    # Add OpenTelemetry handler
-    class OtelHandler(logging.Handler):
-        def emit(self, record):
-            span = get_current_span()
-            
-            log_record = LogRecord(
-                timestamp=datetime.utcnow().timestamp(),
-                trace_id=span.get_span_context().trace_id,
-                span_id=span.get_span_context().span_id,
-                severity_number=SeverityNumber.INFO,
-                attributes={
-                    "message": record.getMessage(),
-                    "level": record.levelname,
-                    "logger": record.name,
-                    "file": record.filename,
-                    "line": record.lineno,
-                    **record.__dict__.get("attributes", {})
-                }
-            )
-            
-            logger_provider.emit(log_record)
-    
-    handler = OtelHandler()
-    logger.addHandler(handler)
-    
-    return logger
+    return Logger(name)
 
-def format_log_message(
-    message: str,
-    level: str,
-    attributes: Dict[str, Any],
-    **kwargs
-) -> str:
+def setup_logging(config: Dict[str, Any]) -> None:
     """
-    Format log message in JSON structure.
+    Configure the logging system.
     
     Args:
-        message: The log message
-        level: Log level (INFO, ERROR, etc.)
-        attributes: Additional attributes
-        **kwargs: Additional keyword arguments
-    
-    Returns:
-        str: Formatted JSON log message
+        config: Logging configuration dictionary
     """
-    log_data = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "level": level,
-        "message": message,
-        "attributes": attributes,
-        **kwargs
-    }
-    return json.dumps(log_data)
+    logging.basicConfig(
+        level=config.get('level', 'INFO'),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(config.get('file', 'app.log'))
+        ]
+    )
 
-def log_info(
-    logger: logging.Logger,
-    message: str,
-    attributes: Dict[str, Any] = None,
-    request_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    context: Dict[str, Any] = None,
-    **kwargs
-) -> None:
+def log_exception(exc: Exception, logger: Logger, request_id: Optional[str] = None,
+                  user_id: Optional[str] = None, context: Optional[Dict[str, Any]] = None) -> None:
     """
-    Log an info message with structured attributes.
+    Log an exception with structured attributes.
     
     Args:
+        exc: Exception to log
         logger: Logger instance
-        message: Message to log
-        attributes: Additional attributes for the log
         request_id: Request ID for correlation
-        user_id: User ID for context
+        user_id: User ID for correlation
         context: Additional context information
-        **kwargs: Additional keyword arguments
     """
-    with tracer.start_as_current_span("log_info") as span:
-        span.set_attribute("message", message)
-        span.set_attribute("level", "INFO")
-        
-        # Add standard context
-        if request_id:
-            span.set_attribute("request_id", request_id)
-        if user_id:
-            span.set_attribute("user_id", user_id)
-        
-        # Add attributes and context
-        combined_attributes = {}
-        if attributes:
-            combined_attributes.update(attributes)
-        if context:
-            combined_attributes.update(context)
-        
-        for key, value in combined_attributes.items():
-            span.set_attribute(key, value)
-            
-        formatted_message = format_log_message(
-            message=message,
-            level="INFO",
-            attributes=combined_attributes,
-            request_id=request_id,
-            user_id=user_id
-        )
-        
-        logger.info(formatted_message, extra={"attributes": combined_attributes, **kwargs})
+    logger.error(
+        f"Exception occurred: {str(exc)}",
+        attributes={
+            'exception_type': type(exc).__name__,
+            'exception_message': str(exc)
+        },
+        request_id=request_id,
+        user_id=user_id,
+        context=context
+    )
 
-def log_error(
-    logger: logging.Logger,
-    message: str,
-    exception: Optional[Exception] = None,
-    attributes: Dict[str, Any] = None,
-    request_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    context: Dict[str, Any] = None,
-    **kwargs
-) -> None:
+def log_performance(metric: str, value: Union[int, float], unit: str,
+                    logger: Logger, request_id: Optional[str] = None,
+                    user_id: Optional[str] = None, context: Optional[Dict[str, Any]] = None) -> None:
     """
-    Log an error message with structured attributes.
+    Log performance metrics.
     
     Args:
+        metric: Name of the metric
+        value: Metric value
+        unit: Unit of measurement
         logger: Logger instance
-        message: Message to log
-        exception: Optional exception to log
-        attributes: Additional attributes for the log
         request_id: Request ID for correlation
-        user_id: User ID for context
+        user_id: User ID for correlation
         context: Additional context information
-        **kwargs: Additional keyword arguments
     """
-    with tracer.start_as_current_span("log_error", kind=trace.SpanKind.INTERNAL) as span:
-        span.set_attribute("message", message)
-        span.set_attribute("level", "ERROR")
-        
-        # Add standard context
-        if request_id:
-            span.set_attribute("request_id", request_id)
-        if user_id:
-            span.set_attribute("user_id", user_id)
-        
-        # Add exception details
-        if exception:
-            span.set_attribute("exception.type", type(exception).__name__)
-            span.set_attribute("exception.message", str(exception))
-            span.set_attribute("exception.traceback", traceback.format_exc())
-        
-        # Add attributes and context
-        combined_attributes = {}
-        if attributes:
-            combined_attributes.update(attributes)
-        if context:
-            combined_attributes.update(context)
-        
-        for key, value in combined_attributes.items():
-            span.set_attribute(key, value)
-            
-        formatted_message = format_log_message(
-            message=message,
-            level="ERROR",
-            attributes=combined_attributes,
-            request_id=request_id,
-            user_id=user_id
-        )
-        
-        logger.error(
-            formatted_message,
-            extra={"attributes": combined_attributes, **kwargs},
-            exc_info=exception
-        )
-
-def log_warning(
-    logger: logging.Logger,
-    message: str,
-    attributes: Dict[str, Any] = None,
-    request_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    context: Dict[str, Any] = None,
-    **kwargs
-) -> None:
-    """
-    Log a warning message with structured attributes.
-    
-    Args:
-        logger: Logger instance
-        message: Message to log
-        attributes: Additional attributes for the log
-        request_id: Request ID for correlation
-        user_id: User ID for context
-        context: Additional context information
-        **kwargs: Additional keyword arguments
-    """
-    with tracer.start_as_current_span("log_warning", kind=trace.SpanKind.INTERNAL) as span:
-        span.set_attribute("message", message)
-        span.set_attribute("level", "WARNING")
-        
-        # Add standard context
-        if request_id:
-            span.set_attribute("request_id", request_id)
-        if user_id:
-            span.set_attribute("user_id", user_id)
-        
-        # Add attributes and context
-        combined_attributes = {}
-        if attributes:
-            combined_attributes.update(attributes)
-        if context:
-            combined_attributes.update(context)
-        
-        for key, value in combined_attributes.items():
-            span.set_attribute(key, value)
-            
-        formatted_message = format_log_message(
-            message=message,
-            level="WARNING",
-            attributes=combined_attributes,
-            request_id=request_id,
-            user_id=user_id
-        )
-        
-        logger.warning(
-            formatted_message,
-            extra={"attributes": combined_attributes, **kwargs}
-        )
-
-def log_debug(
-    logger: logging.Logger,
-    message: str,
-    attributes: Dict[str, Any] = None,
-    request_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    context: Dict[str, Any] = None,
-    **kwargs
-) -> None:
-    """
-    Log a debug message with structured attributes.
-    
-    Args:
-        logger: Logger instance
-        message: Message to log
-        attributes: Additional attributes for the log
-        request_id: Request ID for correlation
-        user_id: User ID for context
-        context: Additional context information
-        **kwargs: Additional keyword arguments
-    """
-    with tracer.start_as_current_span("log_debug", kind=trace.SpanKind.INTERNAL) as span:
-        span.set_attribute("message", message)
-        span.set_attribute("level", "DEBUG")
-        
-        # Add standard context
-        if request_id:
-            span.set_attribute("request_id", request_id)
-        if user_id:
-            span.set_attribute("user_id", user_id)
-        
-        # Add attributes and context
-        combined_attributes = {}
-        if attributes:
-            combined_attributes.update(attributes)
-        if context:
-            combined_attributes.update(context)
-        
-        for key, value in combined_attributes.items():
-            span.set_attribute(key, value)
-            
-        formatted_message = format_log_message(
-            message=message,
-            level="DEBUG",
-            attributes=combined_attributes,
-            request_id=request_id,
-            user_id=user_id
-        )
-        
-        logger.debug(
-            formatted_message,
-            extra={"attributes": combined_attributes, **kwargs}
-        )
+    logger.info(
+        f"Performance metric: {metric}={value}{unit}",
+        attributes={
+            'metric': metric,
+            'value': value,
+            'unit': unit
+        },
+        request_id=request_id,
+        user_id=user_id,
+        context=context
+    )

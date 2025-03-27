@@ -1,36 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: financialmediator-app
+  name: financialmediator
+  namespace: default
   labels:
     app: financialmediator
+    role: web
 spec:
   replicas: 3
   selector:
     matchLabels:
       app: financialmediator
+      role: web
   template:
     metadata:
       labels:
         app: financialmediator
+        role: web
     spec:
       containers:
-      - name: financialmediator
+      - name: web
         image: financialmediator:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
+          name: http
+          protocol: TCP
         envFrom:
         - configMapRef:
             name: financialmediator-config
         - secretRef:
             name: financialmediator-secrets
         resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
           limits:
-            memory: "1Gi"
+            cpu: "1"
+            memory: 512Mi
+          requests:
             cpu: "500m"
+            memory: 256Mi
         livenessProbe:
           httpGet:
             path: /health/
@@ -55,13 +62,30 @@ spec:
             port: 8000
           failureThreshold: 30
           periodSeconds: 10
-          timeoutSeconds: 10
+          timeoutSeconds: 1
           initialDelaySeconds: 0
         volumeMounts:
-        - name: log-volume
-          mountPath: /var/log/financialmediator
+        - name: static-volume
+          mountPath: /app/static
+        - name: media-volume
+          mountPath: /app/media
       volumes:
-      - name: log-volume
-        emptyDir: {}
+      - name: static-volume
+        persistentVolumeClaim:
+          claimName: static-pvc
+      - name: media-volume
+        persistentVolumeClaim:
+          claimName: media-pvc
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      serviceAccountName: financialmediator-sa
       imagePullSecrets:
-      - name: registry-secret
+      - name: regcred
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  revisionHistoryLimit: 10

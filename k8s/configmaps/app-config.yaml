@@ -70,53 +70,88 @@ data:
     cheaper-initial = 4
     cheaper-step = 1
   financialmediator-config: |
-    # Django settings
+    # Django Settings
     DJANGO_SETTINGS_MODULE: financialmediator.settings.production
-    ALLOWED_HOSTS: "*"
+    DEBUG: "false"
+    ALLOWED_HOSTS: "financialmediator.example.com"
     
-    # Database settings
-    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/financialmediator
+    # Database Settings
+    DATABASE_URL: "postgresql://postgres:postgres@postgresql:5432/financialmediator"
+    DATABASE_NAME: financialmediator
+    DATABASE_USER: postgres
+    DATABASE_PASSWORD: postgres
+    DATABASE_HOST: postgresql
+    DATABASE_PORT: "5432"
     
-    # Redis settings
-    REDIS_URL: redis://redis:6379/0
+    # Redis Settings
+    REDIS_URL: "redis://redis:6379/0"
+    REDIS_PASSWORD: ""
     
-    # Celery settings
-    CELERY_BROKER_URL: redis://redis:6379/0
-    CELERY_RESULT_BACKEND: redis://redis:6379/1
+    # Celery Settings
+    CELERY_BROKER_URL: "redis://redis:6379/0"
+    CELERY_RESULT_BACKEND: "redis://redis:6379/1"
     
-    # JWT settings
-    JWT_SECRET_KEY: your-secret-key
-    JWT_EXPIRE_MINUTES: "30"
-    JWT_REFRESH_DAYS: "7"
+    # JWT Settings
+    JWT_SECRET_KEY: ""
+    JWT_ACCESS_TOKEN_LIFETIME_MINUTES: "60"
+    JWT_REFRESH_TOKEN_LIFETIME_DAYS: "7"
     
-    # OpenTelemetry settings
+    # OpenTelemetry Settings
     OTEL_SERVICE_NAME: financialmediator
-    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
     OTEL_EXPORTER_OTLP_INSECURE: "true"
     
-    # Logging settings
-    LOG_LEVEL: INFO
-    
-    # Security settings
-    SECURE_SSL_REDIRECT: "true"
-    SESSION_COOKIE_SECURE: "true"
-    CSRF_COOKIE_SECURE: "true"
-    
-    # Email settings
+    # Email Settings
     EMAIL_HOST: smtp.example.com
     EMAIL_PORT: "587"
     EMAIL_USE_TLS: "true"
+    EMAIL_HOST_USER: noreply@example.com
     DEFAULT_FROM_EMAIL: noreply@example.com
     
-    # CORS settings
-    CORS_ORIGIN_WHITELIST: "['http://localhost:3000', 'https://example.com']"
+    # CORS Settings
+    CORS_ORIGIN_WHITELIST: "http://localhost:3000,https://example.com"
     
-    # Rate limiting settings
+    # Rate Limiting Settings
     RATE_LIMIT_REQUESTS: "100"
     RATE_LIMIT_DURATION: "60"
     RATE_LIMIT_BUCKET_SIZE: "1000"
     
-    # Health check settings
+    # Health Check Settings
     HEALTH_CHECK_TIMEOUT: "30"
     HEALTH_CHECK_INTERVAL: "10"
     HEALTH_CHECK_FAILURE_THRESHOLD: "3"
+    
+    # AWS Settings (if using AWS)
+    AWS_ACCESS_KEY_ID: ""
+    AWS_SECRET_ACCESS_KEY: ""
+    AWS_STORAGE_BUCKET_NAME: ""
+    
+    # Security Settings
+    SECURE_SSL_REDIRECT: "true"
+    SESSION_COOKIE_SECURE: "true"
+    CSRF_COOKIE_SECURE: "true"
+    
+    # Logging Settings
+    LOG_LEVEL: INFO
+    LOG_FILE_PATH: /var/log/financialmediator/app.log
+    
+    # Cache Settings
+    CACHE_KEY_PREFIX: financialmediator
+    CACHE_MIDDLEWARE_SECONDS: "60"
+    
+    # Django REST Framework Settings
+    REST_FRAMEWORK_DEFAULT_THROTTLE_CLASSES: "rest_framework.throttling.AnonRateThrottle,rest_framework.throttling.UserRateThrottle"
+    REST_FRAMEWORK_DEFAULT_THROTTLE_RATES: "anon:100/day,user:1000/day"
+    
+    # Django Debug Toolbar Settings
+    DEBUG_TOOLBAR_CONFIG_SHOW_TOOLBAR_CALLBACK: "lambda _request: DEBUG"
+    
+    # Django REST Framework Spectacular Settings
+    SPECTACULAR_SETTINGS_TITLE: FinancialMediator API
+    SPECTACULAR_SETTINGS_VERSION: "1.0.0"
+    SPECTACULAR_SETTINGS_SERVE_INCLUDE_SCHEMA: "false"
+    SPECTACULAR_SETTINGS_SWAGGER_UI_SETTINGS: "deepLinking:true,persistAuthorization:true,displayOperationId:true"
+    
+    # Django REST Framework Simple JWT Settings
+    SIMPLE_JWT_ACCESS_TOKEN_LIFETIME: "00:15:00"
+    SIMPLE_JWT_REFRESH_TOKEN_LIFETIME: "7 00:00:00"

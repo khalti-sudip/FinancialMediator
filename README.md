@@ -297,6 +297,179 @@ The deployment includes several security measures:
    - Automatic recovery
    - Performance monitoring
 
+## Code Style and Quality
+
+### Code Style Guidelines
+
+We follow the following code style guidelines:
+
+1. **PEP 8** - Python code style
+2. **Type Hints** - All functions, methods, and variables must have type annotations
+3. **Docstrings** - All public functions and classes must have proper docstrings
+4. **Line Length** - Maximum 100 characters per line
+5. **Naming Conventions** - snake_case for variables and functions, PascalCase for classes
+
+### Type Checking
+
+We use MyPy for type checking. All code must be type-safe and pass MyPy checks.
+
+```bash
+mypy .
+```
+
+### Code Formatting
+
+We use Black for code formatting. All code must be formatted using Black.
+
+```bash
+black .
+```
+
+### Linting
+
+We use Flake8 for linting. All code must pass Flake8 checks.
+
+```bash
+flake8 .
+```
+
+### Pre-commit Hooks
+
+We use pre-commit hooks to enforce code style and quality. Install the hooks with:
+
+```bash
+pre-commit install
+```
+
+### Security
+
+We use Bandit for security checks and Safety for dependency security.
+
+```bash
+bandit -r .
+safety check
+```
+
+## API Documentation
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health/` | GET | Check application health |
+| `/api/metrics/` | GET | Get application metrics |
+| `/api/docs/` | GET | API documentation (Swagger UI) |
+| `/api/redoc/` | GET | API documentation (ReDoc) |
+
+### Health Check Response
+
+```json
+{
+    "status": "healthy",
+    "database": "connected",
+    "redis": "connected",
+    "celery": "connected",
+    "otel": "connected"
+}
+```
+
+### Metrics Response
+
+```json
+{
+    "system": {
+        "memory": {
+            "total": 8589934592,
+            "used": 4294967296,
+            "percent": 50
+        },
+        "cpu": {
+            "percent": 15
+        }
+    },
+    "database": {
+        "connections": 10,
+        "queries": 100
+    },
+    "redis": {
+        "used_memory": 1048576,
+        "connected_clients": 10,
+        "commands_processed": 1000
+    }
+}
+```
+
+### Error Responses
+
+All error responses follow this format:
+
+```json
+{
+    "error": "error message",
+    "code": "error_code",
+    "details": {
+        "field": "error details"
+    }
+}
+```
+
+### Rate Limiting
+
+The API is rate limited to:
+- 100 requests per minute for anonymous users
+- 1000 requests per minute for authenticated users
+
+## Development Setup
+
+### Prerequisites
+
+- Python 3.9+
+- Docker and Docker Compose
+- Node.js (for frontend development)
+
+### Installation
+
+1. Clone the repository
+2. Create a virtual environment
+3. Install dependencies
+
+```bash
+git clone https://github.com/yourusername/financialmediator.git
+cd financialmediator
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+### Running the Application
+
+1. Create a `.env` file based on `.env.example`
+2. Start the development server
+
+```bash
+cp .env.example .env
+python manage.py runserver
+```
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Running Linters
+
+```bash
+pre-commit run --all-files
+```
+
+### Building Documentation
+
+```bash
+make docs
+```
+
 ## Getting Started
 
 ### Prerequisites
@@ -395,7 +568,7 @@ The application uses environment variables for configuration. Copy `.env.example
 ```env
 # Core Settings
 DJANGO_SETTINGS_MODULE=core.settings
-DJANGO_SECRET_KEY=your-secret-key
+DJANGO_SECRET_KEY=your_secret_key
 DEBUG=False
 ALLOWED_HOSTS=localhost,127.0.0.1
 
@@ -410,7 +583,7 @@ CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/1
 
 # Security
-JWT_SECRET_KEY=your-jwt-secret-key
+JWT_SECRET_KEY=your_jwt_secret_key
 JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
 JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
 
@@ -561,7 +734,7 @@ OTEL_SERVICE_NAME=financialmediator
 1. Create and activate virtual environment:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 2. Install dependencies:

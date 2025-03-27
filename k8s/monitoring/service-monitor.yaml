@@ -2,24 +2,51 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: financialmediator-monitor
+  namespace: default
   labels:
     app: financialmediator
+    role: monitoring
 spec:
   selector:
     matchLabels:
       app: financialmediator
+      role: web
   endpoints:
   - port: http
-    interval: 30s
+    interval: 15s
     path: /metrics
     scrapeTimeout: 10s
     scheme: http
+    tlsConfig:
+      insecureSkipVerify: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: '^(http_request_duration_seconds_bucket|http_request_duration_seconds_sum|http_request_duration_seconds_count)$'
+      action: keep
+    - sourceLabels: [__name__]
+      regex: '^(celery_task.*|redis_command.*|postgresql.*|django.*|python.*|system.*|process.*|http.*|grpc.*|otel.*|prometheus.*|jaeger.*|zipkin.*)$'
+      action: keep
   - port: http
-    interval: 30s
+    interval: 15s
     path: /health/
     scrapeTimeout: 10s
     scheme: http
   namespaceSelector:
     matchNames:
     - default
-  jobLabel: financialmediator-job
+  jobLabel: financialmediator
+  sampleLimit: 1000
+  timeout: 10s
+  relabelings:
+  - sourceLabels: [__meta_kubernetes_service_label_app]
+    regex: financialmediator
+    action: keep
+  - sourceLabels: [__meta_kubernetes_service_label_role]
+    regex: web
+    action: keep
+  - sourceLabels: [__meta_kubernetes_pod_label_app]
+    regex: financialmediator
+    action: keep
+  - sourceLabels: [__meta_kubernetes_pod_label_role]
+    regex: web
+    action: keep

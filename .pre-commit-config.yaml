@@ -1,0 +1,69 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3.9
+        args: [--line-length=100]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-byte-order-marker
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        additional_dependencies: ["flake8-docstrings", "flake8-import-order"]
+        args: [--max-line-length=100]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.38.0
+    hooks:
+      - id: pyupgrade
+        args: [--py39-plus]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile=black]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.6.1
+    hooks:
+      - id: mypy
+        additional_dependencies: ["django-stubs", "types-requests"]
+
+  - repo: https://github.com/psf/safety
+    rev: 2.13.0
+    hooks:
+      - id: safety
+        args: ["--full-report"]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [--config, .bandit.yml]
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: 2.17.5
+    hooks:
+      - id: pylint
+        additional_dependencies: ["pylint-django"]
+
+  - repo: https://github.com/PyCQA/docformatter
+    rev: 1.6.0
+    hooks:
+      - id: docformatter
+        args: [--in-place, --wrap-summaries=100, --wrap-descriptions=100]
