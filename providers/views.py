@@ -13,9 +13,13 @@ from .serializers import (
     ProviderKeySerializer,
     ProviderWebhookSerializer,
 )
-from api.middleware.request_tracking import track_request
-from api.middleware.rate_limiter import rate_limit
+from .services.provider_service import ProviderService, ProviderKeyService, ProviderWebhookService
+from banking_api.exceptions import ProviderError
+from banking_api.utils.common import get_client_ip, get_user_agent
 
+provider_service = ProviderService()
+provider_key_service = ProviderKeyService()
+provider_webhook_service = ProviderWebhookService()
 
 class ProviderFilter(filters.FilterSet):
     """Filter set for Provider model."""
@@ -30,91 +34,268 @@ class ProviderFilter(filters.FilterSet):
         model = Provider
         fields = ["status", "created_after", "created_before"]
 
-
 class ProviderViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing providers."""
-
+    """
+    ViewSet for managing providers.
+    
+    This viewset handles all provider operations using the ProviderService.
+    """
+    
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_class = ProviderFilter
-
-    @track_request
-    @rate_limit()
-    def list(self, request, *args, **kwargs):
-        """List all providers."""
-        return super().list(request, *args, **kwargs)
-
-    @track_request
-    @rate_limit()
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provider_service = ProviderService()
+    
     def create(self, request, *args, **kwargs):
-        """Create a new provider."""
-        return super().create(request, *args, **kwargs)
-
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                name="pk",
-                type={"type": "integer"},
-                location=OpenApiParameter.PATH,
-                description="Provider ID",
-            ),
-        ],
-        responses={200: {"type": "object", "properties": {"status": {"type": "string"}}}},
-    )
-    @action(detail=True, methods=["post"])
-    @track_request
-    @rate_limit()
-    def test_connection(self, request, pk=None):
-        """Test the connection to a provider."""
-        provider = self.get_object()
+        """
+        Create a new provider.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the created provider
+        """
+        try:
+            provider = self.provider_service.create_provider(request.data)
+            serializer = self.get_serializer(provider)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update an existing provider.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the updated provider
+        """
+        try:
+            provider = self.provider_service.update_provider(
+                kwargs["pk"],
+                request.data
+            )
+            serializer = self.get_serializer(provider)
+            return Response(serializer.data)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a provider.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Empty response with 204 status
+        """
+        try:
+            self.provider_service.delete_provider(kwargs["pk"])
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=False, methods=["get"])
+    def get_by_name(self, request):
+        """
+        Get a provider by name.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the provider details
+        """
+        name = request.query_params.get("name")
+        if not name:
+            return Response(
+                {"error": "name parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         try:
-            # Implementation for testing connection
-            # This would typically call a service method
-            connected = True
-            message = "Connection successful"
-        except Exception as e:
-            connected = False
-            message = str(e)
-        
-        return Response(
-            {"status": "success" if connected else "error", "message": message},
-            status=status.HTTP_200_OK if connected else status.HTTP_400_BAD_REQUEST,
-        )
-
+            provider = self.provider_service.get_provider_by_name(name)
+            serializer = self.get_serializer(provider)
+            return Response(serializer.data)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 class ProviderKeyViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing provider keys."""
-
+    """
+    ViewSet for managing provider keys.
+    
+    This viewset handles all provider key operations using the ProviderKeyService.
+    """
+    
+    queryset = ProviderKey.objects.all()
     serializer_class = ProviderKeySerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        """Get the queryset for provider keys."""
-        provider_pk = self.kwargs.get("provider_pk")
-        return ProviderKey.objects.filter(provider_id=provider_pk)
-
-    def perform_create(self, serializer):
-        """Create a new provider key."""
-        provider_pk = self.kwargs.get("provider_pk")
-        provider = get_object_or_404(Provider, pk=provider_pk)
-        serializer.save(provider=provider, user=self.request.user)
-
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provider_key_service = ProviderKeyService()
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new provider key.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the created key
+        """
+        try:
+            key = self.provider_key_service.create_provider_key(
+                request.data["provider_id"],
+                request.data
+            )
+            serializer = self.get_serializer(key)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update an existing provider key.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the updated key
+        """
+        try:
+            key = self.provider_key_service.update_provider_key(
+                kwargs["pk"],
+                request.data
+            )
+            serializer = self.get_serializer(key)
+            return Response(serializer.data)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a provider key.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Empty response with 204 status
+        """
+        try:
+            self.provider_key_service.delete_provider_key(kwargs["pk"])
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class ProviderWebhookViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing provider webhooks."""
-
+    """
+    ViewSet for managing provider webhooks.
+    
+    This viewset handles all webhook operations using the ProviderWebhookService.
+    """
+    
+    queryset = ProviderWebhook.objects.all()
     serializer_class = ProviderWebhookSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        """Get the queryset for provider webhooks."""
-        provider_pk = self.kwargs.get("provider_pk")
-        return ProviderWebhook.objects.filter(provider_id=provider_pk)
-
-    def perform_create(self, serializer):
-        """Create a new provider webhook."""
-        provider_pk = self.kwargs.get("provider_pk")
-        provider = get_object_or_404(Provider, pk=provider_pk)
-        serializer.save(provider=provider)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provider_webhook_service = ProviderWebhookService()
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new webhook for a provider.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the created webhook
+        """
+        try:
+            webhook = self.provider_webhook_service.create_webhook(
+                request.data["provider_id"],
+                request.data
+            )
+            serializer = self.get_serializer(webhook)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update an existing webhook.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the updated webhook
+        """
+        try:
+            webhook = self.provider_webhook_service.update_webhook(
+                kwargs["pk"],
+                request.data
+            )
+            serializer = self.get_serializer(webhook)
+            return Response(serializer.data)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a webhook.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Empty response with 204 status
+        """
+        try:
+            self.provider_webhook_service.delete_webhook(kwargs["pk"])
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProviderError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
