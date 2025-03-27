@@ -61,12 +61,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_filters',
-    'django_prometheus',
     'django_celery_beat',
     'django_celery_results',
     'django_redis',
     'rest_framework_simplejwt',
     'django_guardian',
+    'opentelemetry-instrumentation-django',
     
     # Project apps
     'api',
@@ -85,6 +85,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'banking_api.middleware.opentelemetry.OpenTelemetryMiddleware',
     'api.middleware.rate_limiter.RateLimitMiddleware',
 ]
 
@@ -129,7 +130,16 @@ CACHES = {
         'LOCATION': env('REDIS_URL', default='redis://localhost:6379/0'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 1000,
+                'timeout': 20
+            }
         }
+    },
+    'local': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake'
     }
 }
 
@@ -292,4 +302,18 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@financialmediato
 # Monitoring
 # ----------------
 
-PROMETHEUS_MULTIPROC_DIR = env('PROMETHEUS_MULTIPROC_DIR', default='prometheus_multiproc')
+OPENTELEMETRY_INSTRUMENTATION_DJANGO = {
+    'EXCLUDED_MODULES': ['opentelemetry.instrumentation.logging'],
+}
+
+OPENTELEMETRY_INSTRUMENTATION_DJANGO_DATABASE = {
+    'ENABLED': True,
+}
+
+OPENTELEMETRY_INSTRUMENTATION_DJANGO_CACHE = {
+    'ENABLED': True,
+}
+
+OPENTELEMETRY_INSTRUMENTATION_DJANGO_CELERY = {
+    'ENABLED': True,
+}

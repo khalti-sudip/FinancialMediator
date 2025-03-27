@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: financial-mediator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.96.0
+        ports:
+        - containerPort: 4317  # gRPC
+        - containerPort: 4318  # HTTP
+        - containerPort: 13133 # Health check
+        - containerPort: 14268 # Jaeger gRPC
+        - containerPort: 14250 # Jaeger gRPC
+        - containerPort: 14269 # Jaeger collector
+        - containerPort: 9411  # Zipkin
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/otel-collector
+      volumes:
+      - name: config-volume
+        configMap:
+          name: otel-collector-config
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: financial-mediator
+spec:
+  ports:
+  - port: 4317
+    name: grpc
+  - port: 4318
+    name: http
+  selector:
+    app: otel-collector
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: financial-mediator
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          thrift_binary:
+            endpoint: 0.0.0.0:14269
+      zipkin:
+        endpoint: 0.0.0.0:9411
+
+    processors:
+      batch:
+        timeout: 10s
+      memory_limiter:
+        check_interval: 2s
+        limit_mib: 1024
+        spike_limit_mib: 256
+        reset_to_zero: true
+
+    exporters:
+      logging:
+        loglevel: debug
+      otlp:
+        endpoint: "otel-collector-agent:4317"
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp, jaeger, zipkin]
+          processors: [memory_limiter, batch]
+          exporters: [otlp, logging]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp, logging]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp, logging]
