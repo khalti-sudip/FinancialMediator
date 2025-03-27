@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: financialmediator-config
+  namespace: financialmediator
+data:
+  DEBUG: "1"
+  DATABASE_URL: "postgresql://postgres:postgres@db:5432/financialmediator"
+  SECRET_KEY: "django-insecure-5e8a7b9c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4"
+  ALLOWED_HOSTS: "localhost,127.0.0.1"
+  DJANGO_SETTINGS_MODULE: "core.settings.local"

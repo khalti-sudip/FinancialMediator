@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financialmediator
+  namespace: financialmediator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: financialmediator
+  template:
+    metadata:
+      labels:
+        app: financialmediator
+    spec:
+      containers:
+      - name: web
+        image: python:3.11-slim
+        command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: financialmediator-config
+        volumeMounts:
+        - name: code
+          mountPath: /app
+      volumes:
+      - name: code
+        hostPath:
+          path: /c/Users/Dell/FinancialMediator
+          type: Directory
