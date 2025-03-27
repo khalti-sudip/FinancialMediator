@@ -25,6 +25,19 @@ ENV PYTHONUNBUFFERED=1 \
 # Expose ports
 EXPOSE 8000
 EXPOSE 9191
+from core.utils.logging import get_logger, log_info, log_error
 
+# Get a logger
+logger = get_logger(__name__)
+
+# Log messages with structured attributes
+log_info(logger, "User created", attributes={"user_id": 123, "email": "user@example.com"})
+
+# Log errors with exceptions
+try:
+    # some operation
+    pass
+except Exception as e:
+    log_error(logger, "Failed to process operation", exception=e, attributes={"operation_id": 456})
 # Command to run the application
 CMD ["uwsgi", "--ini", "uwsgi.ini"]

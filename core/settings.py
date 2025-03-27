@@ -161,6 +161,19 @@ PROVIDER_SETTINGS = {
     },
 }
 
+# Sentry Configuration
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+SENTRY_ENVIRONMENT = os.getenv('SENTRY_ENVIRONMENT', 'production')
+SENTRY_RELEASE = os.getenv('SENTRY_RELEASE', 'unknown')
+SENTRY_SERVER_NAME = os.getenv('SENTRY_SERVER_NAME', 'unknown')
+SENTRY_SERVICE_VERSION = os.getenv('SENTRY_SERVICE_VERSION', '1.0.0')
+SENTRY_DEBUG = os.getenv('SENTRY_DEBUG', 'false').lower() == 'true'
+
+# Initialize Sentry
+if SENTRY_DSN:
+    from core.sentry import configure_sentry
+    configure_sentry()
+
 # Logging
 LOGGING = {
     'version': 1,
