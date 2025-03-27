@@ -1,41 +1,53 @@
 """
-Base KYC provider interface and abstract classes.
+Base classes for KYC providers and clients.
+
+This module provides the abstract base classes for implementing KYC providers
+and their corresponding clients. It defines the interface that all KYC
+implementations must follow.
+
+Key Features:
+1. Standardized verification types
+2. Consistent status handling
+3. Common error handling
+4. Provider configuration management
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
 from datetime import datetime
-
-@dataclass
-class KYCRequestData:
-    """Base class for KYC request data."""
-    request_id: str
-    timestamp: datetime
-    entity_id: str
-    subject_type: str
-    subject_id: str
-    verification_type: str
-    data: Dict[str, Any]
-
-@dataclass
-class KYCResponse:
-    """Base class for KYC response."""
-    request_id: str
-    timestamp: datetime
-    status: str
-    verification_score: float
-    is_verified: bool
-    details: Dict[str, Any]
-    error: Optional[str] = None
-
 
 class BaseKYCProvider(ABC):
     """
     Abstract base class for KYC providers.
     
     Defines the interface that all KYC provider implementations must follow.
+    
+    Verification Types:
+    - DOCUMENT: Document verification
+    - FACE: Face verification
+    - ADDRESS: Address verification
+    - BACKGROUND: Background check
+    - COMPLIANCE: Regulatory compliance check
+    
+    Status Types:
+    - PENDING: Verification pending
+    - VERIFIED: Successfully verified
+    - REJECTED: Verification failed
+    - EXPIRED: Verification expired
+    - REVOKED: Verification revoked
     """
+    
+    DOCUMENT = "DOCUMENT"
+    FACE = "FACE"
+    ADDRESS = "ADDRESS"
+    BACKGROUND = "BACKGROUND"
+    COMPLIANCE = "COMPLIANCE"
+    
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+    REVOKED = "REVOKED"
     
     @abstractmethod
     def initialize(self, config: Dict[str, Any]) -> None:
@@ -44,6 +56,10 @@ class BaseKYCProvider(ABC):
         
         Args:
             config: Provider-specific configuration
+            
+        Raises:
+            ValueError: If required configuration is missing
+            ConfigurationError: If configuration is invalid
         """
         pass
     
@@ -54,128 +70,195 @@ class BaseKYCProvider(ABC):
         
         Returns:
             bool: True if authentication was successful, False otherwise
+            
+        Raises:
+            AuthenticationError: If authentication fails
         """
         pass
     
     @abstractmethod
-    def validate_request(self, request: KYCRequestData) -> bool:
+    def verify(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate a KYC request.
         
         Args:
-            request: The request to validate
-            
+            data: Verification data containing:
+                - verification_type: Type of verification (DOCUMENT, FACE, etc.)
+                - user_data: User-specific information
+                - document_data: Document information (if applicable)
+                - face_data: Face verification data (if applicable)
+                - address_data: Address verification data (if applicable)
+                
         Returns:
-            bool: True if request is valid, False otherwise
+            Dict: Verification result containing:
+                - status: Verification status (PENDING, VERIFIED, etc.)
+                - verification_id: Unique verification identifier
+                - details: Verification details
+                - timestamp: Timestamp of verification
+                
+        Raises:
+            ValidationError: If verification data is invalid
+            ProviderError: If provider-specific error occurs
         """
         pass
     
     @abstractmethod
-    def process_verification(
-        self, 
-        request: KYCRequestData
-    ) -> KYCResponse:
+    def get_status(self, verification_id: str) -> Dict[str, Any]:
         """
-        Process a KYC verification request.
+        Get the current status of a verification request.
         
         Args:
-            request: The verification request
+            verification_id: Unique verification identifier
             
         Returns:
-            KYCResponse: The verification response
+            Dict: Verification status containing:
+                - status: Current verification status
+                - details: Status details
+                - timestamp: Last update timestamp
+                
+        Raises:
+            NotFoundError: If verification ID is not found
+            ProviderError: If provider-specific error occurs
         """
         pass
     
     @abstractmethod
-    def get_status(self) -> Dict[str, Any]:
+    def cancel_verification(self, verification_id: str) -> bool:
         """
-        Get the current status of the KYC provider.
-        
-        Returns:
-            Dict: Provider status information
-        """
-        pass
-    
-    @abstractmethod
-    def handle_webhook(self, data: Dict[str, Any]) -> KYCResponse:
-        """
-        Handle incoming webhook from the KYC provider.
+        Cancel an ongoing verification request.
         
         Args:
-            data: Webhook data
+            verification_id: Unique verification identifier
             
         Returns:
-            KYCResponse: Response to the webhook
+            bool: True if cancellation was successful
+            
+        Raises:
+            NotFoundError: If verification ID is not found
+            ProviderError: If provider-specific error occurs
         """
         pass
     
     @abstractmethod
-    def get_supported_verification_types(self) -> list[str]:
+    def get_supported_verifications(self) -> List[str]:
         """
-        Get the list of supported verification types.
+        Get list of supported verification types.
         
         Returns:
-            list[str]: List of supported verification types
+            List[str]: List of supported verification types
         """
         pass
-
+    
+    @abstractmethod
+    def get_provider_info(self) -> Dict[str, Any]:
+        """
+        Get information about the KYC provider.
+        
+        Returns:
+            Dict: Provider information containing:
+                - name: Provider name
+                - version: Provider API version
+                - supported_verifications: List of supported verification types
+                - status: Current provider status
+                
+        Raises:
+            ProviderError: If provider information cannot be retrieved
+        """
+        pass
 
 class BaseKYCClient(ABC):
     """
-    Abstract base class for KYC client implementations.
+    Abstract base class for KYC provider clients.
     
-    Provides a standardized interface for making KYC verification requests.
+    Defines the interface that all KYC client implementations must follow.
+    
+    The client handles:
+    1. Provider communication
+    2. Error handling
+    3. Response parsing
+    4. Status tracking
     """
     
+    @abstractmethod
     def __init__(self, provider: BaseKYCProvider):
-        self.provider = provider
-    
-    @abstractmethod
-    def create_verification_request(
-        self,
-        entity_id: str,
-        subject_type: str,
-        subject_id: str,
-        verification_type: str,
-        data: Dict[str, Any]
-    ) -> KYCRequestData:
         """
-        Create a new KYC verification request.
+        Initialize the KYC client.
         
         Args:
-            entity_id: ID of the requesting entity
-            subject_type: Type of the subject being verified
-            subject_id: ID of the subject
-            verification_type: Type of verification
-            data: Request-specific data
-            
-        Returns:
-            KYCRequestData: The created request
+            provider: KYC provider instance
         """
         pass
     
     @abstractmethod
-    def get_verification_status(self, request_id: str) -> KYCResponse:
+    def verify(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Get the status of a KYC verification request.
+        Validate a KYC request through the provider.
         
         Args:
-            request_id: ID of the verification request
+            data: Verification data
             
         Returns:
-            KYCResponse: The verification response
+            Dict: Verification result
+            
+        Raises:
+            ValidationError: If verification data is invalid
+            ProviderError: If provider-specific error occurs
         """
         pass
     
     @abstractmethod
-    def cancel_verification(self, request_id: str) -> bool:
+    def get_status(self, verification_id: str) -> Dict[str, Any]:
         """
-        Cancel a pending KYC verification request.
+        Get the current status of a verification request.
         
         Args:
-            request_id: ID of the verification request
+            verification_id: Unique verification identifier
             
         Returns:
-            bool: True if cancellation was successful, False otherwise
+            Dict: Verification status
+            
+        Raises:
+            NotFoundError: If verification ID is not found
+            ProviderError: If provider-specific error occurs
+        """
+        pass
+    
+    @abstractmethod
+    def cancel_verification(self, verification_id: str) -> bool:
+        """
+        Cancel an ongoing verification request.
+        
+        Args:
+            verification_id: Unique verification identifier
+            
+        Returns:
+            bool: True if cancellation was successful
+            
+        Raises:
+            NotFoundError: If verification ID is not found
+            ProviderError: If provider-specific error occurs
+        """
+        pass
+    
+    @abstractmethod
+    def get_supported_verifications(self) -> List[str]:
+        """
+        Get list of supported verification types.
+        
+        Returns:
+            List[str]: List of supported verification types
+        """
+        pass
+    
+    @abstractmethod
+    def get_provider_info(self) -> Dict[str, Any]:
+        """
+        Get information about the KYC provider.
+        
+        Returns:
+            Dict: Provider information
+            
+        Raises:
+            ProviderError: If provider information cannot be retrieved
         """
         pass

@@ -1,6 +1,21 @@
+# Dockerfile for FinancialMediator
+# 
+# This Dockerfile defines the container image for the FinancialMediator application.
+# It uses a multi-stage build process to:
+# 1. Build the application and dependencies
+# 2. Create a production-ready image
+# 3. Copy only necessary files to the final image
+# 
+# Key Features:
+# - Multi-stage build for smaller image size
+# - Production-ready configuration
+# - Security best practices
+# - Performance optimizations
+
 # Build stage
 FROM python:3.11-slim as builder
 
+# Set working directory
 WORKDIR /app
 
 # Install build dependencies
@@ -11,8 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install security scanning tool
 RUN pip install --no-cache-dir trivy
 
-# Copy requirements and install dependencies
+# Copy requirements
 COPY requirements.txt .
+
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
@@ -23,8 +40,6 @@ RUN trivy fs /app --exit-code 1 --severity HIGH,CRITICAL
 
 # Production stage
 FROM python:3.11-slim
-
-WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
