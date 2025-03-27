@@ -36,7 +36,7 @@ cryptography==41.0.7
 sentry-sdk==1.39.1
 
 # WSGI Server for Production
-uwsgi>=2.0.21,<3.0.0
+uwsgi>=2.0.21,<3.0.0; platform_system != "Windows"
 
 # Development and Testing
 pytest>=7.4.0,<8.0.0

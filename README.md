@@ -228,6 +228,129 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-email-password
 ```
 
+## Security and Performance Monitoring
+
+### Security Best Practices
+
+1. **Environment Variables**
+   - All sensitive configurations must be stored in environment variables
+   - Never commit sensitive values to version control
+   - Use `.env` files for local development only
+   - Production secrets should be managed through a secrets management system
+
+2. **Security Audits**
+   - Run regular security audits using the provided `security_audit.py` script
+   - Check for hardcoded secrets, missing environment variables, and SAST vulnerabilities
+   - Monitor rate limiting and authentication configurations
+
+3. **Rate Limiting**
+   - Global rate limiting is configured in `settings.py`
+   - View-specific rate limiting can be applied using the `@rate_limit` decorator
+   - Monitor rate limiting effectiveness using the performance monitoring tools
+
+### Performance Monitoring
+
+1. **OpenTelemetry Integration**
+   - The application uses OpenTelemetry for distributed tracing and metrics
+   - All major components (Django, Redis, Requests) are instrumented
+   - Performance metrics are collected and exported to an OTLP endpoint
+
+2. **Performance Monitoring Tools**
+   - Use the `performance_monitor.py` script to track:
+     - Transaction processing times
+     - API response times
+     - Database query performance
+     - Cache hit/miss ratios
+     - Potential bottlenecks
+
+3. **Profiling and Optimization**
+   - Use the performance monitoring tools to identify:
+     - Slow database queries
+     - High cache miss rates
+     - Long-running transactions
+     - API endpoints with high response times
+   - Optimize identified bottlenecks using:
+     - Query optimization
+     - Caching strategies
+     - Connection pooling
+     - Async operations where appropriate
+
+### Security Audit Script Usage
+
+```bash
+python scripts/security_audit.py
+```
+
+This script will:
+- Scan for hardcoded secrets
+- Check environment variable configuration
+- Run SAST security scans
+- Verify rate limiting configuration
+
+### Performance Monitoring Usage
+
+```bash
+python scripts/performance_monitor.py
+```
+
+This script will:
+- Monitor transaction performance
+- Track API response times
+- Log database query performance
+- Record cache hit/miss ratios
+- Analyze potential bottlenecks
+
+### Required Environment Variables
+
+```bash
+# Required for security
+SECRET_KEY=your_secret_key
+DATABASE_PASSWORD=your_db_password
+JWT_SECRET_KEY=your_jwt_secret
+REDIS_PASSWORD=your_redis_password
+
+# Required for performance monitoring
+OTEL_EXPORTER_OTLP_ENDPOINT=http://your-otlp-endpoint:4317
+OTEL_SERVICE_NAME=financialmediator
+```
+
+### Security Tips
+
+1. **Regular Audits**
+   - Run security audits before each deployment
+   - Review audit logs regularly
+   - Keep dependencies up to date
+
+2. **Access Control**
+   - Implement proper authentication and authorization
+   - Use role-based access control
+   - Regularly review access permissions
+
+3. **Data Protection**
+   - Encrypt sensitive data
+   - Use secure password hashing
+   - Implement proper session management
+
+### Performance Optimization Tips
+
+1. **Database Optimization**
+   - Use appropriate indexes
+   - Optimize query patterns
+   - Implement connection pooling
+   - Use bulk operations where possible
+
+2. **Caching Strategy**
+   - Implement proper caching layers
+   - Use appropriate cache invalidation
+   - Monitor cache hit rates
+   - Implement cache warming strategies
+
+3. **API Optimization**
+   - Implement proper pagination
+   - Use appropriate HTTP methods
+   - Implement proper error handling
+   - Use proper response formats
+
 ## Developer Documentation
 
 ### Local Development Setup
