@@ -16,9 +16,7 @@ spec:
     spec:
       containers:
       - name: financialmediator
-        image: python:3.11-slim
-        command: ["/bin/sh"]
-        args: ["-c", "apt-get update && apt-get install -y --no-install-recommends python3-pip python3-dev build-essential gcc postgresql-client libpq-dev && pip3 install --upgrade pip && pip3 install --no-cache-dir -r /app/requirements.txt && python /app/manage.py migrate && uwsgi --ini /app/uwsgi.ini"]
+        image: docker-desktop:5000/financial-mediator:latest
         ports:
         - containerPort: 8000
         envFrom:
@@ -49,15 +47,13 @@ spec:
           httpGet:
             path: /health/
             port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+          initialDelaySeconds: 30
+          periodSeconds: 10
           failureThreshold: 3
       volumes:
       - name: app-config
-        configMap:
-          name: app-config
+        emptyDir: {}
       - name: app-files
-        configMap:
-          name: app-files
+        emptyDir: {}
       - name: app-volume
         emptyDir: {}

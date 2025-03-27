@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{app_name}}
+  namespace: {{namespace}}
+  labels:
+    app: {{app_name}}
+spec:
+  replicas: {{replicas}}
+  selector:
+    matchLabels:
+      app: {{app_name}}
+  template:
+    metadata:
+      labels:
+        app: {{app_name}}
+    spec:
+      containers:
+      - name: {{app_name}}
+        image: {{image}}
+        ports:
+        - containerPort: {{port}}
+        envFrom:
+        - secretRef:
+            name: {{app_name}}-secrets
+        resources:
+          requests:
+            memory: "{{memory_request}}"
+            cpu: "{{cpu_request}}"
+          limits:
+            memory: "{{memory_limit}}"
+            cpu: "{{cpu_limit}}"
+        livenessProbe:
+          httpGet:
+            path: /health/
+            port: {{port}}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/
+            port: {{port}}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
