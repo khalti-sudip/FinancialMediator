@@ -9,8 +9,8 @@ from banking_api.serializers.api_key_serializer import ApiKeySerializer
 from banking_api.services.api_key_service import APIKeyService
 from banking_api.services.audit_log_service import AuditLogService
 from banking_api.exceptions import APIKeyError
+from banking_api.utils.common import get_client_ip, get_user_agent, format_timestamp
 import uuid
-import secrets
 
 class ApiKeyViewSet(viewsets.ModelViewSet):
     """
@@ -41,7 +41,11 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         """
         Create a new API key with auto-generated values if not provided
         
-        Uses the APIKeyService to handle API key generation and validation.
+        Args:
+            serializer: The serializer containing validated data
+            
+        Returns:
+            The created APIKey instance
         """
         try:
             # Generate key_value if not provided
@@ -55,16 +59,10 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
             )
             
             # Log API key creation
-            self.audit_log_service.create_audit_log(
-                user_id=self.request.user.id,
-                action="API_KEY_CREATE",
-                details={
-                    "api_key_id": str(api_key.id),
-                    "name": api_key.name,
-                    "provider_type": api_key.provider_type
-                },
-                ip_address=self._get_client_ip(self.request),
-                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            self._log_api_key_action(
+                api_key,
+                "API_KEY_CREATE",
+                "API key created"
             )
             
             return api_key
@@ -75,7 +73,11 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         """
         Update an API key and log the action
         
-        Uses the APIKeyService to handle API key updates.
+        Args:
+            serializer: The serializer containing validated data
+            
+        Returns:
+            The updated APIKey instance
         """
         try:
             api_key = serializer.save()
@@ -87,16 +89,10 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
             )
             
             # Log API key update
-            self.audit_log_service.create_audit_log(
-                user_id=self.request.user.id,
-                action="API_KEY_UPDATE",
-                details={
-                    "api_key_id": str(api_key.id),
-                    "name": api_key.name,
-                    "provider_type": api_key.provider_type
-                },
-                ip_address=self._get_client_ip(self.request),
-                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            self._log_api_key_action(
+                api_key,
+                "API_KEY_UPDATE",
+                "API key updated"
             )
             
             return api_key
@@ -107,95 +103,67 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         """
         Delete an API key and log the action
         
-        Uses the APIKeyService to handle API key deletion.
+        Args:
+            instance: The APIKey instance to delete
         """
         try:
             # Delete using service
             self.api_key_service.delete_api_key(instance.id)
             
             # Log API key deletion
-            self.audit_log_service.create_audit_log(
-                user_id=self.request.user.id,
-                action="API_KEY_DELETE",
-                details={
-                    "api_key_id": str(instance.id),
-                    "name": instance.name,
-                    "provider_type": instance.provider_type
-                },
-                ip_address=self._get_client_ip(self.request),
-                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            self._log_api_key_action(
+                instance,
+                "API_KEY_DELETE",
+                "API key deleted"
             )
         except APIKeyError as e:
             raise serializers.ValidationError(str(e))
     
-    @action(detail=True, methods=["post"])
-    def regenerate(self, request, pk=None):
+    @action(detail=False, methods=["get"])
+    def validate(self, request):
         """
-        Regenerate the API key value
+        Validate an API key
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing validation result
         """
-        api_key = self.get_object()
-
-        # Generate new key value
-        api_key.key_value = f"api_{uuid.uuid4().hex}"
-
-        # Generate new secret if it was previously set
-        if api_key.secret_value:
-            api_key.secret_value = secrets.token_urlsafe(32)
-
-        api_key.save()
-
-        # Log API key regeneration
+        api_key = request.query_params.get("api_key")
+        if not api_key:
+            return Response(
+                {"error": "API key is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            is_valid = self.api_key_service.validate_api_key(api_key)
+            return Response({"valid": is_valid})
+        except APIKeyError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def _log_api_key_action(self, api_key, action, message):
+        """
+        Log an API key action
+        
+        Args:
+            api_key: The APIKey instance
+            action: The action type
+            message: The log message
+        """
         self.audit_log_service.create_audit_log(
             user_id=self.request.user.id,
-            action="API_KEY_UPDATE",
+            action=action,
             details={
                 "api_key_id": str(api_key.id),
                 "name": api_key.name,
-                "provider_type": api_key.provider_type
+                "provider_type": api_key.provider_type,
+                "message": message
             },
-            ip_address=self._get_client_ip(self.request),
-            user_agent=self.request.META.get('HTTP_USER_AGENT')
+            ip_address=get_client_ip(self.request),
+            user_agent=get_user_agent(self.request)
         )
-
-        serializer = self.get_serializer(api_key)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=["post"])
-    def toggle_active(self, request, pk=None):
-        """
-        Toggle the active status of an API key
-        """
-        api_key = self.get_object()
-
-        # Toggle is_active
-        api_key.is_active = not api_key.is_active
-        api_key.save()
-
-        action_details = (
-            f"API key {'activated' if api_key.is_active else 'deactivated'}"
-        )
-
-        # Log status change
-        self.audit_log_service.create_audit_log(
-            user_id=self.request.user.id,
-            action="API_KEY_UPDATE",
-            details={
-                "api_key_id": str(api_key.id),
-                "name": api_key.name,
-                "provider_type": api_key.provider_type
-            },
-            ip_address=self._get_client_ip(self.request),
-            user_agent=self.request.META.get('HTTP_USER_AGENT')
-        )
-
-        serializer = self.get_serializer(api_key)
-        return Response(serializer.data)
-
-    def _get_client_ip(self, request):
-        """Get the client IP address from request"""
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(",")[0]
-        else:
-            ip = request.META.get("REMOTE_ADDR")
-        return ip

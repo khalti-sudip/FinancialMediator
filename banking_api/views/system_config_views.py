@@ -9,6 +9,7 @@ from banking_api.serializers.system_config_serializer import SystemConfigSeriali
 from banking_api.services.system_config_service import SystemConfigService
 from banking_api.services.audit_log_service import AuditLogService
 from banking_api.exceptions import SystemConfigError
+from banking_api.utils.common import get_client_ip, get_user_agent, format_timestamp
 
 class SystemConfigViewSet(viewsets.ModelViewSet):
     """
@@ -39,7 +40,11 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
         """
         Create a new system configuration and log the action
         
-        Uses the SystemConfigService to handle configuration creation.
+        Args:
+            serializer: The serializer containing validated data
+            
+        Returns:
+            The created SystemConfig instance
         """
         try:
             system_config = self.system_config_service.set_config(
@@ -48,18 +53,11 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
                 description=serializer.validated_data.get("description", "")
             )
             
-            # Log system config creation
-            self.audit_log_service.create_audit_log(
-                user_id=self.request.user.id,
-                action="SYSTEM_CONFIG_CREATE",
-                details={
-                    "config_id": str(system_config.id),
-                    "key": system_config.key,
-                    "value": system_config.value,
-                    "description": system_config.description
-                },
-                ip_address=self._get_client_ip(self.request),
-                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            # Log configuration creation
+            self._log_config_action(
+                system_config,
+                "SYSTEM_CONFIG_CREATE",
+                "System configuration created"
             )
             
             return system_config
@@ -70,7 +68,11 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
         """
         Update a system configuration and log the action
         
-        Uses the SystemConfigService to handle configuration updates.
+        Args:
+            serializer: The serializer containing validated data
+            
+        Returns:
+            The updated SystemConfig instance
         """
         try:
             system_config = serializer.save()
@@ -82,18 +84,11 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
                 description=serializer.validated_data.get("description", "")
             )
             
-            # Log system config update
-            self.audit_log_service.create_audit_log(
-                user_id=self.request.user.id,
-                action="SYSTEM_CONFIG_UPDATE",
-                details={
-                    "config_id": str(system_config.id),
-                    "key": system_config.key,
-                    "value": system_config.value,
-                    "description": system_config.description
-                },
-                ip_address=self._get_client_ip(self.request),
-                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            # Log configuration update
+            self._log_config_action(
+                system_config,
+                "SYSTEM_CONFIG_UPDATE",
+                "System configuration updated"
             )
             
             return system_config
@@ -104,34 +99,32 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
         """
         Delete a system configuration and log the action
         
-        Uses the SystemConfigService to handle configuration deletion.
+        Args:
+            instance: The SystemConfig instance to delete
         """
         try:
             # Delete using service
             self.system_config_service.delete_config(instance.key)
             
-            # Log system config deletion
-            self.audit_log_service.create_audit_log(
-                user_id=self.request.user.id,
-                action="SYSTEM_CONFIG_DELETE",
-                details={
-                    "config_id": str(instance.id),
-                    "key": instance.key,
-                    "value": instance.value,
-                    "description": instance.description
-                },
-                ip_address=self._get_client_ip(self.request),
-                user_agent=self.request.META.get('HTTP_USER_AGENT')
+            # Log configuration deletion
+            self._log_config_action(
+                instance,
+                "SYSTEM_CONFIG_DELETE",
+                "System configuration deleted"
             )
         except SystemConfigError as e:
             raise serializers.ValidationError(str(e))
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def get_config(self, request):
         """
         Get a specific system configuration by key
         
-        Returns the configuration value if found.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the configuration details
         """
         key = request.query_params.get('key')
         if not key:
@@ -155,12 +148,16 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def get_all_configs(self, request):
         """
         Get all system configurations
         
-        Returns a dictionary of all configurations.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing all configurations
         """
         try:
             configs = self.system_config_service.get_all_configs()
@@ -171,11 +168,25 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    def _get_client_ip(self, request):
-        """Get the client IP address from request"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+    def _log_config_action(self, config, action, message):
+        """
+        Log a system configuration action
+        
+        Args:
+            config: The SystemConfig instance
+            action: The action type
+            message: The log message
+        """
+        self.audit_log_service.create_audit_log(
+            user_id=self.request.user.id,
+            action=action,
+            details={
+                "config_id": str(config.id),
+                "key": config.key,
+                "value": config.value,
+                "description": config.description,
+                "message": message
+            },
+            ip_address=get_client_ip(self.request),
+            user_agent=get_user_agent(self.request)
+        )

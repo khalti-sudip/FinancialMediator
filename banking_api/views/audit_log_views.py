@@ -5,6 +5,7 @@ from banking_api.models.audit_log import AuditLog
 from banking_api.serializers.audit_log_serializer import AuditLogSerializer
 from banking_api.services.audit_log_service import AuditLogService
 from banking_api.exceptions import AuditLogError
+from banking_api.utils.common import get_client_ip, format_timestamp
 from rest_framework.response import Response
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -33,24 +34,22 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     def list(self, request, *args, **kwargs):
         """
-        Get a list of audit logs with optional filters.
+        List audit logs with optional filters.
         
-        Uses the AuditLogService to handle log retrieval.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the list of audit logs
         """
         try:
-            # Get filters from request
-            user_id = request.query_params.get('user_id')
-            action = request.query_params.get('action')
-            start_date = request.query_params.get('start_date')
-            end_date = request.query_params.get('end_date')
-            
-            # Get logs using service
+            filters = self._get_request_filters(request)
             logs = self.audit_log_service.get_audit_logs(
-                user_id=user_id,
-                action=action,
-                start_date=start_date,
-                end_date=end_date,
-                limit=100  # Limit to 100 logs
+                user_id=filters.get("user_id"),
+                action=filters.get("action"),
+                start_date=filters.get("start_date"),
+                end_date=filters.get("end_date"),
+                limit=100
             )
             
             serializer = self.get_serializer(logs, many=True)
@@ -63,12 +62,16 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     def retrieve(self, request, *args, **kwargs):
         """
-        Get a specific audit log by ID.
+        Retrieve a specific audit log by ID.
         
-        Uses the AuditLogService to handle log retrieval.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the audit log details
         """
         try:
-            log = self.audit_log_service.get_audit_log_by_id(kwargs['pk'])
+            log = self.audit_log_service.get_audit_log_by_id(kwargs["pk"])
             serializer = self.get_serializer(log)
             return Response(serializer.data)
         except AuditLogError as e:
@@ -77,15 +80,19 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def user_logs(self, request):
         """
         Get audit logs for a specific user.
         
-        Returns logs filtered by user ID.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the user's audit logs
         """
         try:
-            user_id = request.query_params.get('user_id')
+            user_id = request.query_params.get("user_id")
             if not user_id:
                 return Response(
                     {"error": "user_id is required"},
@@ -105,15 +112,19 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def action_logs(self, request):
         """
         Get audit logs for a specific action.
         
-        Returns logs filtered by action type.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the action's audit logs
         """
         try:
-            action = request.query_params.get('action')
+            action = request.query_params.get("action")
             if not action:
                 return Response(
                     {"error": "action is required"},
@@ -133,15 +144,19 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def recent_logs(self, request):
         """
         Get most recent audit logs.
         
-        Returns the most recent logs with optional limit.
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Response containing the most recent audit logs
         """
         try:
-            limit = int(request.query_params.get('limit', 100))
+            limit = int(request.query_params.get("limit", 100))
             logs = self.audit_log_service.get_recent_audit_logs(limit=limit)
             
             serializer = self.get_serializer(logs, many=True)
@@ -151,3 +166,20 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+    
+    def _get_request_filters(self, request):
+        """
+        Extract and validate request filters.
+        
+        Args:
+            request: The HTTP request object
+            
+        Returns:
+            Dictionary of validated filter parameters
+        """
+        return {
+            "user_id": request.query_params.get("user_id"),
+            "action": request.query_params.get("action"),
+            "start_date": request.query_params.get("start_date"),
+            "end_date": request.query_params.get("end_date")
+        }
