@@ -1,12 +1,11 @@
 """
-Financial Mediator Providers Module.
+FinancialMediator providers module.
 
-This module provides a modular system for managing:
-- Financial institutions (banks, wallets, etc.)
-- Financial providers (payment gateways, KYC services, etc.)
+This module contains the core provider system for FinancialMediator, including:
+- Provider registration and management
 - Request processing and routing
 """
 
-from .utils.registry import registry
+from .utils import ProviderRegistry
 
-__all__ = ['registry']
+__all__ = ['ProviderRegistry']

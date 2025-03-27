@@ -1,7 +1,12 @@
 import os
 from pathlib import Path
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Add the project root to Python path
+import sys
+sys.path.insert(0, str(BASE_DIR))
 
 SECRET_KEY = 'django-insecure-test-key'
 
@@ -17,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'banking_api',
+    'providers',
     'django_extensions',
 ]
 

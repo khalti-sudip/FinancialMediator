@@ -1,11 +1,16 @@
-import pytest
 import os
+import sys
+import pytest
 import django
 from django.test import Client
 from django.contrib.auth.models import User
 from banking_api.models import User as BankingUser, ApiKey, Transaction
 from django.conf import settings
 import uuid
+from pathlib import Path
+
+# Add the project root to Python path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Set up Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
