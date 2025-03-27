@@ -228,55 +228,227 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-email-password
 ```
 
-### Monitoring
+## Developer Documentation
 
-The application includes comprehensive monitoring capabilities:
+### Local Development Setup
 
-1. **Health Checks**
-   - Database connectivity
-   - Redis availability
-   - Celery worker status
-   - System resources
+#### Using Virtual Environment (venv)
+1. Create and activate virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+```
 
-2. **Performance Metrics**
-   - Request response times
-   - Database query performance
-   - Cache hit/miss ratios
-   - Resource utilization
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Run migrations:
+```bash
+python manage.py migrate
+```
+
+5. Start development server:
+```bash
+python manage.py runserver
+```
+
+#### Using Docker
+1. Build and start containers:
+```bash
+docker-compose up --build
+```
+
+2. Access the application:
+- Web interface: http://localhost:8000
+- Admin interface: http://localhost:8000/admin
+- API documentation: http://localhost:8000/api/docs
+
+### Common Development Workflows
+
+#### Running Tests
+```bash
+# Run all tests
+python manage.py test
+
+# Run specific app tests
+python manage.py test app_name
+
+# Run specific test file
+python manage.py test app_name/tests/test_file.py
+
+# Run specific test case
+python manage.py test app_name.tests.test_file.TestCaseName
+```
+
+#### Running Migrations
+```bash
+# Create and apply migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# Show pending migrations
+python manage.py showmigrations
+```
+
+#### Creating Superuser
+```bash
+python manage.py createsuperuser
+```
+
+### Logging Configuration
+
+The application uses structured logging with OpenTelemetry. Logs are formatted in JSON for easy integration with centralized logging systems.
+
+#### Log Levels
+- `DEBUG`: Detailed information for debugging
+- `INFO`: General operational information
+- `WARNING`: Potential issues that don't prevent operation
+- `ERROR`: Issues that prevent normal operation
+- `CRITICAL`: Severe errors that require immediate attention
+
+#### Log Format
+```json
+{
+    "timestamp": "2025-03-27T12:00:00+05:45",
+    "level": "INFO",
+    "service": "financialmediator",
+    "component": "api",
+    "request_id": "123456789",
+    "user_id": "123",
+    "message": "User created successfully",
+    "details": {
+        "user_email": "user@example.com",
+        "operation": "create_user"
+    }
+}
+```
+
+### Modular Django Apps
+
+The application is organized into domain-specific Django apps:
+
+1. `core` - Core application settings and utilities
+2. `banking_api` - Banking API endpoints and services
+3. `providers` - Financial provider integrations
+4. `audit` - Audit logging and tracking
+5. `security` - Authentication and authorization
+6. `monitoring` - Health checks and performance monitoring
+
+#### Adding New Features
+
+1. Create a new app:
+```bash
+python manage.py startapp new_feature
+```
+
+2. Follow the directory structure:
+```
+new_feature/
+├── __init__.py
+├── admin.py
+├── apps.py
+├── models.py
+├── serializers.py
+├── services/
+│   ├── __init__.py
+│   └── service_name.py
+├── utils/
+│   ├── __init__.py
+│   └── utils.py
+├── views/
+│   ├── __init__.py
+│   └── views.py
+└── tests/
+    ├── __init__.py
+    └── test_views.py
+```
+
+### Troubleshooting Common Issues
+
+#### Database Connection Issues
+1. Check if PostgreSQL is running
+2. Verify database credentials in `.env`
+3. Run migrations: `python manage.py migrate`
+
+#### Rate Limiting Errors
+1. Check Redis connection
+2. Verify rate limit configuration
+3. Monitor request patterns
+
+#### Celery Worker Issues
+1. Check if Redis is running
+2. Verify worker logs
+3. Restart workers: `celery -A banking_project worker --loglevel=info`
+
+#### API Errors
+1. Check request logs
+2. Verify API key permissions
+3. Check rate limits
+4. Review error responses for details
+
+### Best Practices
+
+1. **Code Organization**
+   - Keep related functionality in the same module
+   - Use clear, descriptive function names
+   - Add comprehensive docstrings
+
+2. **Testing**
+   - Write unit tests for all new features
+   - Use pytest fixtures for test setup
+   - Maintain high test coverage
 
 3. **Logging**
-   - Structured logging
-   - Error tracking
-   - Performance profiling
-   - Audit logging
+   - Include request_id in all logs
+   - Add context to error messages
+   - Use appropriate log levels
+   - Follow JSON log format
 
-### Security Features
+4. **Security**
+   - Validate all inputs
+   - Use secure defaults
+   - Follow least privilege principle
+   - Regular security audits
 
-1. **Authentication**
-   - JWT-based authentication
-   - Session management
-   - API key validation
-   - Rate limiting
+### Deployment
 
-2. **Authorization**
-   - Role-based access control
-   - Permission management
-   - Resource protection
-   - Audit logging
+#### Local Deployment
+```bash
+# Start Minikube
+python k8s/setup_minikube.py
 
-3. **Data Protection**
-   - End-to-end encryption
-   - Secure storage
-   - Access controls
-   - Audit trails
+# Deploy application
+python k8s/manager.py deploy
+
+# Clean up
+python k8s/manager.py cleanup
+python k8s/cleanup_minikube.py
+```
+
+#### Production Deployment
+1. Update environment variables
+2. Run database migrations
+3. Start services in order:
+   - Database
+   - Cache
+   - Celery workers
+   - Web application
 
 ### Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ### License
 
