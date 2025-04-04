@@ -21,15 +21,16 @@ redis==5.0.1
 # Task Queue and Background Jobs
 celery>=5.3.0,<6.0.0
 django-celery-beat>=2.5.0,<3.0.0
+django-celery-results>=2.5.0,<3.0.0
 kombu==5.3.4
 
 # Security and Monitoring
 opentelemetry-api>=1.18.0,<2.0.0
 opentelemetry-sdk>=1.18.0,<2.0.0
-opentelemetry-instrumentation-django>=0.40b0,<0.41b0
-opentelemetry-instrumentation-redis>=0.42b0,<0.43b0
-opentelemetry-instrumentation-psycopg2>=0.42b0,<0.43b0
-opentelemetry-instrumentation-requests>=0.42b0,<0.43b0
+opentelemetry-instrumentation-django>=0.40b0,<0.43b0
+opentelemetry-instrumentation-redis>=0.40b0,<0.43b0
+opentelemetry-instrumentation-psycopg2>=0.40b0,<0.43b0
+opentelemetry-instrumentation-requests>=0.40b0,<0.43b0
 opentelemetry-exporter-otlp-proto-http>=1.21.0,<2.0.0
 opentelemetry-exporter-otlp-proto-grpc>=1.21.0,<2.0.0
 django-ratelimit==4.1.0
@@ -75,12 +76,15 @@ types-python-dateutil>=2.8.2,<3.0.0
 types-pyyaml>=6.0.1,<7.0.0
 
 # Structured Logging
-structlog>=22.3.0,<23.0.0
-structlog-standard-library>=0.6.0,<0.7.0
+structlog==23.2.0
+
+
 
 # OpenTelemetry Instrumentation
-opentelemetry-instrumentation-celery>=0.42b0,<0.43b0
-opentelemetry-instrumentation-django>=0.40b0,<0.41b0
+opentelemetry-instrumentation==0.42b0
+opentelemetry-instrumentation-django>=0.42b0,<0.43b0
 opentelemetry-instrumentation-requests>=0.42b0,<0.43b0
 opentelemetry-instrumentation-redis>=0.42b0,<0.43b0
 opentelemetry-instrumentation-psycopg2>=0.42b0,<0.43b0
+opentelemetry-api>=1.18.0,<2.0.0
+opentelemetry-sdk>=1.18.0,<2.0.0

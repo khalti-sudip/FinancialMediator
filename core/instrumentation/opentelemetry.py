@@ -19,6 +19,7 @@ The instrumentation is configured using environment variables:
 - OTEL_LOG_LEVEL: Logging level (default: INFO)
 """
 
+import os
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -34,8 +35,8 @@ from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.celery import CeleryInstrumentor
-import os
-import logging
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.sdk.resources import Resource
 from pathlib import Path
 
 # Create logs directory if it doesn't exist
@@ -45,105 +46,59 @@ LOGS_DIR.mkdir(exist_ok=True)
 def configure_opentelemetry():
     """
     Configure OpenTelemetry for the application.
-    
-    This function sets up:
-    1. Tracer provider with resource attributes
-    2. Meter provider for metrics
-    3. Logger provider for structured logging
-    4. OTLP exporters for trace, metric, and log export
-    5. Instrumentation for all supported components
-    
-    The configuration is controlled by environment variables:
-    - OTEL_SERVICE_NAME: Service name (required)
-    - OTEL_SERVICE_VERSION: Service version (required)
-    - OTEL_DEPLOYMENT_ENVIRONMENT: Deployment environment (required)
-    - OTEL_EXPORTER_OTLP_ENDPOINT: Optional OTLP endpoint URL
-    - OTEL_LOG_LEVEL: Logging level (default: INFO)
     """
     # Get environment variables
     env = os.environ
     
     # Create resource with service information
-    from opentelemetry.sdk.resources import Resource
     resource = Resource(attributes={
         "service.name": env.get("OTEL_SERVICE_NAME", "financial-mediator"),
         "service.version": env.get("OTEL_SERVICE_VERSION", "1.0.0"),
-        "deployment.environment": env.get("OTEL_DEPLOYMENT_ENVIRONMENT", "production")
+        "deployment.environment": env.get("OTEL_DEPLOYMENT_ENVIRONMENT", "production"),
     })
     
     # Create tracer provider
     tracer_provider = TracerProvider(resource=resource)
     
-    # Create meter provider
-    meter_provider = MeterProvider(resource=resource)
-    
-    # Create logger provider
-    logger_provider = LoggerProvider(resource=resource)
-    
     # Set up exporters
     exporters = []
-    metric_exporters = []
-    log_exporters = []
     
-    # OTLP HTTP exporter
-    if env.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
-        # Traces
-        exporters.append(OTLPSpanExporter(
-            endpoint=env.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
-            headers=env.get("OTEL_EXPORTER_OTLP_HEADERS", "")
-        ))
-        
-        # Metrics
-        metric_exporters.append(OTLPMetricExporter(
-            endpoint=env.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
-            headers=env.get("OTEL_EXPORTER_OTLP_HEADERS", "")
-        ))
-        
-        # Logs
-        log_exporters.append(OTLPLogExporter(
-            endpoint=env.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
-            headers=env.get("OTEL_EXPORTER_OTLP_HEADERS", "")
-        ))
+    # Console exporter for development
+    if env.get("OTEL_EXPORTER_CONSOLE", "false").lower() == "true":
+        from opentelemetry.exporter.otlp.proto.console.trace_exporter import OTLPSpanExporter
+        exporters.append(OTLPSpanExporter())
     
-    # Add processors
-    tracer_provider.add_span_processor(BatchSpanProcessor(*exporters))
-    meter_provider.add_reader(PeriodicExportingMetricReader(*metric_exporters))
-    logger_provider.add_log_record_processor(BatchLogRecordProcessor(*log_exporters))
+    # OTLP exporter for production
+    otlp_endpoint = env.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if otlp_endpoint:
+        exporters.append(
+            OTLPSpanExporter(
+                endpoint=otlp_endpoint,
+                insecure=env.get("OTEL_EXPORTER_OTLP_INSECURE", "false").lower() == "true",
+                credentials=env.get("OTEL_EXPORTER_OTLP_GRPC_CREDENTIALS")
+            )
+        )
     
-    # Set the global providers
+    # Add exporters to the tracer provider
+    for exporter in exporters:
+        tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
+    
+    # Set the global tracer provider
     trace.set_tracer_provider(tracer_provider)
-    metrics.set_meter_provider(meter_provider)
     
-    # Configure logging
-    logging.basicConfig(
-        level=env.get("OTEL_LOG_LEVEL", "INFO"),
-        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+    # Instrumentations
+    DjangoInstrumentor().instrument(
+        is_distributed=True,
+        excluded_urls="^/healthz,^/metrics"
     )
-    
-    # Create OpenTelemetry logging handler
-    otel_handler = LoggingHandler(
-        level=env.get("OTEL_LOG_LEVEL", "INFO"),
-        logger_provider=logger_provider
-    )
-    
-    # Add OpenTelemetry handler to root logger
-    logging.getLogger().addHandler(otel_handler)
-    
-    # Instrument Django
-    DjangoInstrumentor().instrument()
-    
-    # Instrument Redis
     RedisInstrumentor().instrument()
-    
-    # Instrument PostgreSQL
     Psycopg2Instrumentor().instrument()
-    
-    # Instrument HTTP requests
     RequestsInstrumentor().instrument()
-    
-    # Instrument Celery
     CeleryInstrumentor().instrument()
+    LoggingInstrumentor().instrument(
+        set_logging_format=True,
+        log_level=env.get("OTEL_LOG_LEVEL", "INFO")
+    )
 
 # Configure OpenTelemetry when the module is imported
 configure_opentelemetry()
