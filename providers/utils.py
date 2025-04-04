@@ -13,12 +13,78 @@ import hashlib
 import secrets
 import string
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type, Set
 from django.conf import settings
 from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
+
+class ProviderRegistry:
+    """
+    Registry for managing financial providers.
+    
+    This class handles:
+    - Provider registration
+    - Request routing
+    - Provider configuration
+    """
+    def __init__(self):
+        """Initialize the provider registry."""
+        self._providers: Dict[str, Type] = {}
+        self._initialized = False
+
+    def register(self, provider_type: str, provider_class: Type) -> None:
+        """
+        Register a provider class.
+        
+        Args:
+            provider_type: Type identifier for the provider
+            provider_class: Provider class to register
+        
+        Raises:
+            ValueError: If provider type is already registered
+        """
+        if provider_type in self._providers:
+            raise ValueError(f"Provider type already registered: {provider_type}")
+        
+        self._providers[provider_type] = provider_class
+
+    def get_provider(self, provider_type: str) -> Optional[Type]:
+        """
+        Get a registered provider class.
+        
+        Args:
+            provider_type: Type identifier for the provider
+            
+        Returns:
+            Optional[Type]: Provider class if registered, None otherwise
+        """
+        return self._providers.get(provider_type)
+
+    def initialize(self) -> None:
+        """
+        Initialize all registered providers.
+        
+        This method should be called after all providers are registered.
+        """
+        if self._initialized:
+            return
+            
+        for provider_type, provider_class in self._providers.items():
+            try:
+                provider_class.initialize()
+            except Exception as e:
+                logger.error(
+                    f"Failed to initialize provider {provider_type}",
+                    exc_info=True
+                )
+                
+        self._initialized = True
+
+    def is_initialized(self) -> bool:
+        """Check if providers are initialized."""
+        return self._initialized
 
 def calculate_signature(data: Dict[str, Any], secret: str) -> str:
     """

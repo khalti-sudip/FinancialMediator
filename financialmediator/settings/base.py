@@ -6,6 +6,7 @@ This module contains the core configuration settings that are common across all 
 
 import environ
 from pathlib import Path
+from datetime import timedelta
 
 # Initialize environment
 env = environ.Env()
@@ -189,3 +190,7 @@ LOGGING = {
         },
     },
 }
+
+# Create logs directory if it doesn't exist
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
