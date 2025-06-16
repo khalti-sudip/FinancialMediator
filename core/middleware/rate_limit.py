@@ -17,12 +17,13 @@ Environment Variables:
 
 from django.utils.deprecation import MiddlewareMixin
 from django.core.cache import cache
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseTooManyRequests
 from rest_framework import status
 import time
 import os
 from typing import Callable, Optional
 from functools import wraps
+from django.conf import settings
 
 class RateLimitMiddleware(MiddlewareMixin):
     """
@@ -46,8 +47,9 @@ class RateLimitMiddleware(MiddlewareMixin):
             get_response: Callable to get the response
         """
         self.get_response = get_response
-        self.rate_limit = int(os.getenv('RATE_LIMIT_REQUESTS_PER_MINUTE', 100))
-        self.window = int(os.getenv('RATE_LIMIT_WINDOW_SECONDS', 60))
+        self.rate_limit = getattr(settings, 'RATE_LIMIT_REQUESTS', 100)
+        self.rate_limit_duration = getattr(settings, 'RATE_LIMIT_DURATION', 60)
+        self.rate_limit_bucket_size = getattr(settings, 'RATE_LIMIT_BUCKET_SIZE', 1000)
         self.cache_key_prefix = 'rate_limit_'
         
     def process_request(self, request):
@@ -60,30 +62,11 @@ class RateLimitMiddleware(MiddlewareMixin):
         Returns:
             JsonResponse: Error response if rate limit is exceeded, None otherwise
         """
-        client_ip = self.get_client_ip(request)
-        if not client_ip:
-            return JsonResponse(
-                {'error': 'IP address not found'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        cache_key = f'{self.cache_key_prefix}{client_ip}'
-        current_count = cache.get(cache_key, 0)
-        
-        if current_count >= self.rate_limit:
-            return JsonResponse(
-                {
-                    'error': 'Rate limit exceeded',
-                    'limit': self.rate_limit,
-                    'window': self.window
-                },
-                status=status.HTTP_429_TOO_MANY_REQUESTS
-            )
-            
-        cache.incr(cache_key, 1)
-        cache.expire(cache_key, self.window)
-        
-    def get_client_ip(self, request):
+        if not self._is_rate_limited(request):
+            return self.get_response(request)
+        return HttpResponseTooManyRequests('Rate limit exceeded')
+
+    def _get_client_ip(self, request) -> str:
         """
         Get client IP address from request.
         
@@ -95,10 +78,37 @@ class RateLimitMiddleware(MiddlewareMixin):
         """
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+            return x_forwarded_for.split(',')[0]
+        return request.META.get('REMOTE_ADDR')
+
+    def _get_cache_key(self, request) -> str:
+        client_ip = self._get_client_ip(request)
+        return f'rate_limit:{client_ip}'
+
+    def _is_rate_limited(self, request) -> bool:
+        if request.path.startswith('/admin/'):
+            return False
+
+        cache_key = self._get_cache_key(request)
+        current_time = int(time.time())
+        window_start = current_time - self.rate_limit_duration
+
+        # Get current rate limit data
+        rate_data = cache.get(cache_key, {'count': 0, 'window_start': window_start})
+
+        # Reset if window has passed
+        if current_time - rate_data['window_start'] > self.rate_limit_duration:
+            rate_data = {'count': 0, 'window_start': current_time}
+
+        # Check if rate limit exceeded
+        if rate_data['count'] >= self.rate_limit:
+            return True
+
+        # Increment counter
+        rate_data['count'] += 1
+        cache.set(cache_key, rate_data, self.rate_limit_duration)
+
+        return False
 
 def rate_limit(
     requests_per_minute: int = 100,

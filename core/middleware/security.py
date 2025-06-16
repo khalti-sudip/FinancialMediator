@@ -1,31 +1,28 @@
 from django.utils.deprecation import MiddlewareMixin
 
-class SecurityHeadersMiddleware(MiddlewareMixin):
+class SecurityMiddleware(MiddlewareMixin):
     """Middleware to add security-related HTTP headers."""
     
     def process_response(self, request, response):
         # Content Security Policy
-        response['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+        response['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
         
-        # X-Content-Type-Options
+        # Prevent MIME type sniffing
         response['X-Content-Type-Options'] = 'nosniff'
         
-        # X-Frame-Options
+        # Prevent clickjacking
         response['X-Frame-Options'] = 'DENY'
         
-        # X-XSS-Protection
+        # Enable XSS protection
         response['X-XSS-Protection'] = '1; mode=block'
         
-        # Strict-Transport-Security
-        response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+        # Force HTTPS
+        response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         
-        # X-Permitted-Cross-Domain-Policies
-        response['X-Permitted-Cross-Domain-Policies'] = 'none'
-        
-        # Referrer-Policy
+        # Control referrer information
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         
-        # Feature-Policy
-        response['Feature-Policy'] = "geolocation 'none'; microphone 'none'; camera 'none'"
+        # Feature Policy
+        response['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
         
         return response
